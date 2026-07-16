@@ -49,6 +49,7 @@ const emptyCreateForm = {
   phone: '',
   password: '',
   managerId: '',
+  baseSalary: '',
 };
 
 export function EmployeesPage() {
@@ -120,6 +121,7 @@ export function EmployeesPage() {
         phone: form.phone || undefined,
         password: form.password || undefined,
         managerId: form.managerId || undefined,
+        baseSalary: form.baseSalary ? Number(form.baseSalary) : undefined,
       });
       const loginPassword = form.password || 'Password@123';
       toast.success(`Employee created. Login password: ${loginPassword}`, {
@@ -251,6 +253,17 @@ export function EmployeesPage() {
                   placeholder="Leave blank to auto-generate"
                   value={form.employeeCode}
                   onChange={(e) => setForm({ ...form, employeeCode: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Base Salary (optional)</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="e.g. 50000"
+                  value={form.baseSalary}
+                  onChange={(e) => setForm({ ...form, baseSalary: e.target.value })}
                 />
               </div>
               <div className="space-y-2">

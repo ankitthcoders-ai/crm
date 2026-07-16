@@ -1,4 +1,8 @@
 import { useEffect, useState } from 'react';
+import * as Popover from '@radix-ui/react-popover';
+import { format } from 'date-fns';
+import { DayPicker } from 'react-day-picker';
+import 'react-day-picker/dist/style.css';
 import { CalendarDays, Check, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -7,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api, getApiErrorMessage } from '@/lib/api';
 import { useAppSelector } from '@/store/hooks';
 import { PERMISSIONS } from '@crm/shared';
@@ -125,6 +130,34 @@ export function LeavesPage() {
     }
   };
 
+  const getLeaveDates = (status: string) => {
+    return requests
+      .filter((r) => r.status === status)
+      .flatMap((r) => {
+        const dates = [];
+        const current = new Date(r.startDate);
+        const end = new Date(r.endDate);
+        while (current <= end) {
+          dates.push(new Date(current));
+          current.setDate(current.getDate() + 1);
+        }
+        return dates;
+      });
+  };
+
+  const approvedDates = getLeaveDates('APPROVED');
+  const pendingDates = getLeaveDates('PENDING');
+
+  const modifiers = {
+    approved: approvedDates,
+    pending: pendingDates,
+  };
+
+  const modifiersStyles = {
+    approved: { backgroundColor: '#22c55e', color: 'white' },
+    pending: { backgroundColor: '#eab308', color: 'white' },
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -165,36 +198,66 @@ export function LeavesPage() {
           <form onSubmit={handleApply} className="grid gap-4 sm:grid-cols-2 max-w-2xl">
             <div className="space-y-2 sm:col-span-2">
               <Label>Leave type</Label>
-              <select
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                required
+              <Select
                 value={form.leaveTypeId}
-                onChange={(e) => setForm({ ...form, leaveTypeId: e.target.value })}
+                onValueChange={(v) => setForm({ ...form, leaveTypeId: v })}
+                required
               >
-                {types.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name} ({t.daysPerYear} days/year)
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a leave type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {types.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.name} ({t.daysPerYear} days/year)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label>Start date</Label>
-              <Input
-                type="date"
-                required
-                value={form.startDate}
-                onChange={(e) => setForm({ ...form, startDate: e.target.value })}
-              />
+              <Popover.Root>
+                <Popover.Trigger asChild>
+                  <Button type="button" variant="outline" className={`w-full justify-start text-left font-normal ${!form.startDate && 'text-muted-foreground'}`}>
+                    <CalendarDays className="mr-2 h-4 w-4" />
+                    {form.startDate ? format(new Date(form.startDate), 'PPP') : <span>Pick a date</span>}
+                  </Button>
+                </Popover.Trigger>
+                <Popover.Content className="w-auto p-0 bg-background border rounded-md shadow-md z-50" align="start">
+                  <DayPicker
+                    mode="single"
+                    selected={form.startDate ? new Date(form.startDate) : undefined}
+                    onSelect={(d) => {
+                      if (d) {
+                        setForm({ ...form, startDate: format(d, 'yyyy-MM-dd') });
+                      }
+                    }}
+                  />
+                </Popover.Content>
+              </Popover.Root>
             </div>
             <div className="space-y-2">
               <Label>End date</Label>
-              <Input
-                type="date"
-                required
-                value={form.endDate}
-                onChange={(e) => setForm({ ...form, endDate: e.target.value })}
-              />
+              <Popover.Root>
+                <Popover.Trigger asChild>
+                  <Button type="button" variant="outline" className={`w-full justify-start text-left font-normal ${!form.endDate && 'text-muted-foreground'}`}>
+                    <CalendarDays className="mr-2 h-4 w-4" />
+                    {form.endDate ? format(new Date(form.endDate), 'PPP') : <span>Pick a date</span>}
+                  </Button>
+                </Popover.Trigger>
+                <Popover.Content className="w-auto p-0 bg-background border rounded-md shadow-md z-50" align="start">
+                  <DayPicker
+                    mode="single"
+                    selected={form.endDate ? new Date(form.endDate) : undefined}
+                    onSelect={(d) => {
+                      if (d) {
+                        setForm({ ...form, endDate: format(d, 'yyyy-MM-dd') });
+                      }
+                    }}
+                  />
+                </Popover.Content>
+              </Popover.Root>
             </div>
             <div className="space-y-2 sm:col-span-2">
               <Label>Reason (optional)</Label>
@@ -210,13 +273,31 @@ export function LeavesPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">
-            {canApprove ? 'All Leave Requests' : 'My Leave Requests'}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Leave Calendar</CardTitle>
+          </CardHeader>
+          <CardContent className="flex justify-center p-4">
+            <style>{`
+              .rdp { --rdp-cell-size: 40px; margin: 0; }
+              .rdp-day_selected { font-weight: bold; }
+            `}</style>
+            <DayPicker 
+              mode="multiple" 
+              modifiers={modifiers} 
+              modifiersStyles={modifiersStyles}
+            />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">
+              {canApprove ? 'All Leave Requests' : 'My Leave Requests'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
           {loading ? (
             <div className="p-6">
               <Skeleton className="h-24 w-full" />
@@ -304,6 +385,7 @@ export function LeavesPage() {
           )}
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

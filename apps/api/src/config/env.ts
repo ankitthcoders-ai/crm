@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 const apiRoot = path.resolve(__dirname, '../..');
 dotenv.config({ path: path.join(apiRoot, '.env') });
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+dotenv.config({ path: path.join(apiRoot, '../../.env') });
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),

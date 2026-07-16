@@ -1,6 +1,11 @@
 import { PrismaClient } from '@prisma/client';
 import { ROLE_PERMISSIONS } from '@crm/shared';
 import bcrypt from 'bcryptjs';
+import dotenv from 'dotenv';
+import path from 'path';
+
+dotenv.config({ path: path.join(__dirname, '../../../../.env') });
+dotenv.config({ path: path.join(__dirname, '../../../.env') });
 
 const prisma = new PrismaClient();
 
@@ -54,8 +59,8 @@ async function main() {
 
   const defaultLeaveTypes = [
     { code: 'ANNUAL', name: 'Annual Leave', daysPerYear: 20 },
-    { code: 'SICK', name: 'Sick Leave', daysPerYear: 10 },
-    { code: 'CASUAL', name: 'Casual Leave', daysPerYear: 5 },
+    { code: 'SICK', name: 'Sick Leave', daysPerYear: 6 },
+    { code: 'CASUAL', name: 'Casual Leave', daysPerYear: 12 },
   ];
 
   const planDefs = [
@@ -143,7 +148,7 @@ async function main() {
   for (const lt of defaultLeaveTypes) {
     await prisma.leaveType.upsert({
       where: { companyId_code: { companyId: company.id, code: lt.code } },
-      update: {},
+      update: { daysPerYear: lt.daysPerYear },
       create: { ...lt, companyId: company.id },
     });
   }

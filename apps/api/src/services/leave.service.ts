@@ -111,6 +111,22 @@ export class LeaveService {
       throw new ValidationError('Insufficient leave balance');
     }
 
+    if (leaveType.code === 'CASUAL') {
+      const allReqs = await leaveRepository.findRequests(user.companyId, {
+        page: 1, limit: 100, employeeId
+      });
+      const month = startDate.getUTCMonth();
+      const hasCasualThisMonth = allReqs.items.some(r => 
+        r.leaveTypeId === leaveType.id && 
+        (r.status === 'PENDING' || r.status === 'APPROVED') &&
+        r.startDate.getUTCMonth() === month &&
+        r.startDate.getUTCFullYear() === year
+      );
+      if (hasCasualThisMonth) {
+        throw new ValidationError('You can only take 1 Casual Leave per month');
+      }
+    }
+
     const overlapping = await leaveRepository.findRequests(user.companyId, {
       page: 1,
       limit: 50,

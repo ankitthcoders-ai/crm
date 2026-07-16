@@ -106,6 +106,7 @@ export class EmployeeService {
       phone?: string;
       employmentStatus?: string;
       managerId?: string;
+      baseSalary?: number;
     }
   ) {
     const email = input.email.toLowerCase();
@@ -167,6 +168,16 @@ export class EmployeeService {
           manager: true,
         },
       });
+
+      if (input.baseSalary !== undefined && input.baseSalary !== null) {
+        await tx.salaryStructure.create({
+          data: {
+            employeeId: employee.id,
+            baseSalary: input.baseSalary,
+            effectiveFrom: joiningDate,
+          },
+        });
+      }
 
       return employee;
     });
