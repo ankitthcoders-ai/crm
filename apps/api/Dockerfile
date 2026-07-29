@@ -3,7 +3,7 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 COPY packages/shared ./packages/shared
 COPY apps/api ./apps/api
-RUN npm install
+RUN npm install --workspace=@crm/shared --workspace=@crm/api
 RUN npm run build -w @crm/shared
 WORKDIR /app/apps/api
 RUN npx prisma generate
