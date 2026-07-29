@@ -78,8 +78,14 @@ export class EmployeeRepository {
   }
 
   async getNextCode(companyId: string): Promise<string> {
+    const settings = await prisma.companySettings.findUnique({
+      where: { companyId },
+      select: { employeeCodePrefix: true },
+    });
+    const prefix = settings?.employeeCodePrefix || 'EMP';
+
     let count = await prisma.employee.count({ where: { companyId } });
-    let nextCode = `EMP-${String(count + 1).padStart(4, '0')}`;
+    let nextCode = `${prefix}-${String(count + 1).padStart(4, '0')}`;
 
     while (true) {
       const existing = await prisma.employee.findFirst({
@@ -87,7 +93,7 @@ export class EmployeeRepository {
       });
       if (!existing) break;
       count++;
-      nextCode = `EMP-${String(count + 1).padStart(4, '0')}`;
+      nextCode = `${prefix}-${String(count + 1).padStart(4, '0')}`;
     }
 
     return nextCode;

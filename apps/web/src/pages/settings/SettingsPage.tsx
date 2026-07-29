@@ -19,13 +19,14 @@ interface CompanySettings {
 export function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState<CompanySettings>({
+  const [form, setForm] = useState<CompanySettings & { employeeCodePrefix?: string }>({
     officeStartTime: '09:00',
     officeEndTime: '18:00',
     workDays: [1, 2, 3, 4, 5],
     lateThresholdMin: 15,
     emailNotifications: true,
     theme: 'system',
+    employeeCodePrefix: 'EMP',
   });
 
   const load = async () => {
@@ -40,6 +41,7 @@ export function SettingsPage() {
           lateThresholdMin: res.data.data.lateThresholdMin ?? 15,
           emailNotifications: res.data.data.emailNotifications ?? true,
           theme: res.data.data.theme ?? 'system',
+          employeeCodePrefix: res.data.data.employeeCodePrefix ?? 'EMP',
         });
       }
     } catch (e) {
@@ -122,6 +124,17 @@ export function SettingsPage() {
             />
           </div>
           <div className="space-y-2">
+            <Label>Employee ID Prefix</Label>
+            <Input
+              type="text"
+              placeholder="e.g. EMP"
+              maxLength={10}
+              value={form.employeeCodePrefix}
+              onChange={(e) => setForm({ ...form, employeeCodePrefix: e.target.value })}
+              disabled={loading}
+            />
+          </div>
+          <div className="sm:col-span-2 space-y-2">
             <Label>Theme</Label>
             <select
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
