@@ -18,19 +18,9 @@ export function createApp(): express.Application {
   app.set('trust proxy', 1);
 
   app.use(helmet());
-  const allowedOrigins = env.CORS_ORIGIN.split(',').map(o => o.trim());
   app.use(
     cors({
-      origin: (origin, callback) => {
-        // If no origin (e.g., server-to-server) or origin is in our allowed list
-        if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
-          callback(null, true);
-        } else {
-          // For this specific deployment, let's allow it dynamically to prevent issues
-          // In a strict production environment, you'd reject here.
-          callback(null, true);
-        }
-      },
+      origin: true,
       credentials: true,
     })
   );
