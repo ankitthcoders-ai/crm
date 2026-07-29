@@ -8,7 +8,7 @@ import { UnauthorizedError } from '../utils/errors';
 const getCookieOptions = (): CookieOptions => ({
   httpOnly: true,
   secure: env.NODE_ENV === 'production',
-  sameSite: 'strict',
+  sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax',
   path: '/',
 });
 
