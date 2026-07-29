@@ -19,5 +19,5 @@ COPY --from=builder /app/apps/api/package.json ./apps/api/
 COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
 WORKDIR /app/apps/api
 RUN mkdir -p uploads
-EXPOSE 4000
+EXPOSE ${PORT:-4000}
 CMD ["sh", "-c", "npx prisma migrate deploy && node prisma/seed.js && node dist/server.js"]

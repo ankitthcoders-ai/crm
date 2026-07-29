@@ -14,8 +14,9 @@ async function bootstrap(): Promise<void> {
   initSocketIO(httpServer);
   startCronJobs();
 
-  httpServer.listen(env.API_PORT, () => {
-    logger.info(`API running on ${env.API_URL}`);
+  const PORT = Number(process.env.PORT) || env.API_PORT;
+  httpServer.listen(PORT, () => {
+    logger.info(`API running on port ${PORT}`);
     logger.info(`Swagger docs: ${env.API_URL}/api/docs`);
   });
 
