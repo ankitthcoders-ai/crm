@@ -146,10 +146,10 @@ export class AuthService {
 
   async login(email: string, password: string, ip?: string, userAgent?: string) {
     const user = await userRepository.findByEmail(email.toLowerCase());
-    if (!user) throw new UnauthorizedError('Invalid credentials');
+    if (!user) throw new UnauthorizedError('Email is not registered');
 
     const valid = await comparePassword(password, user.passwordHash);
-    if (!valid) throw new UnauthorizedError('Invalid credentials');
+    if (!valid) throw new UnauthorizedError('Incorrect password');
 
     if (user.status === 'SUSPENDED' || user.status === 'INACTIVE') {
       throw new UnauthorizedError('Account is disabled');

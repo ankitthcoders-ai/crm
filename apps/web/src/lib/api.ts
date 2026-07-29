@@ -61,10 +61,10 @@ export function getApiErrorMessage(error: unknown): string {
   if (axios.isAxiosError(error)) {
     const data = error.response?.data as { message?: string; errors?: Record<string, string[]> };
     if (data?.errors) {
-      const details = Object.entries(data.errors)
-        .map(([field, msgs]) => `${field}: ${msgs.join(', ')}`)
-        .join('; ');
-      return details ? `${data.message ?? 'Validation failed'} — ${details}` : data.message!;
+      const details = Object.values(data.errors)
+        .flat()
+        .join(', ');
+      return details || data.message || 'Validation failed';
     }
     return data?.message || error.message || 'Something went wrong';
   }
