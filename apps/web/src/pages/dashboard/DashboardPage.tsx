@@ -107,13 +107,15 @@ export function DashboardPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          title="Employees"
-          value={stats?.totalEmployees ?? stats?.employees ?? 0}
-          icon={Users}
-          trend={isSuperAdmin ? { value: 12, label: 'vs last month' } : undefined}
-        />
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+        {!isEmployee && (
+          <StatCard
+            title="Employees"
+            value={stats?.totalEmployees ?? stats?.employees ?? 0}
+            icon={Users}
+            trend={isSuperAdmin ? { value: 12, label: 'vs last month' } : undefined}
+          />
+        )}
         <StatCard
           title="Active Projects"
           value={stats?.activeProjects ?? stats?.projects ?? 0}
@@ -125,10 +127,16 @@ export function DashboardPage() {
           icon={Clock}
         />
         <StatCard
-          title={isEmployee ? 'My Tasks' : 'Pending Leaves'}
-          value={isEmployee ? (stats?.myTasks ?? 0) : (stats?.pendingLeaves ?? 0)}
-          icon={isEmployee ? CheckSquare : CalendarDays}
-          description={isEmployee ? 'Assigned to you' : 'Awaiting approval'}
+          title="Pending Leaves"
+          value={stats?.pendingLeaves ?? 0}
+          icon={CalendarDays}
+          description={isEmployee ? 'Your pending requests' : 'Awaiting approval'}
+        />
+        <StatCard
+          title="My Tasks"
+          value={stats?.myTasks ?? stats?.tasks ?? 0}
+          icon={CheckSquare}
+          description="Assigned to you"
         />
       </div>
 

@@ -1,5 +1,6 @@
 import { prisma } from '../config/database';
 import { NotFoundError } from '../utils/errors';
+import { hashPassword } from '../utils/password';
 import { auditService, formatAuditActor } from './audit.service';
 
 export class AdminUserService {
@@ -100,6 +101,35 @@ export class AdminUserService {
     });
 
     return updated;
+  }
+
+  async changePassword(
+    companyId: string,
+    actor: { id: string; email: string; firstName: string; lastName: string },
+    userId: string,
+    newPassword: string
+  ) {
+    const user = await prisma.user.findFirst({
+      where: { id: userId, companyId, deletedAt: null },
+    });
+    if (!user) throw new NotFoundError('User not found');
+
+    const passwordHash = await hashPassword(newPassword);
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash },
+    });
+
+    await auditService.log({
+      companyId,
+      userId: actor.id,
+      action: 'UPDATE',
+      entityType: 'User',
+      entityId: userId,
+      oldValues: { password: '***' },
+      newValues: { password: '*** (changed by admin)', updatedBy: formatAuditActor(actor) },
+    });
   }
 }
 

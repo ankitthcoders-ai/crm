@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { z } from 'zod';
 import { PERMISSIONS } from '@crm/shared';
 import { authenticate } from '../middleware/auth.middleware';
 import { requireAnyPermission } from '../middleware/rbac.middleware';
@@ -80,6 +81,17 @@ router.get(
   requireAnyPermission(PERMISSIONS.REPORTS_EXPORT),
   validate(exportAttendanceReportSchema, 'query'),
   (req, res, next) => reportController.exportAttendanceReport(req, res).catch(next)
+);
+
+/**
+ * GET /api/v1/reports/payroll/export
+ * Export payroll report as PDF, CSV, or JSON
+ */
+router.get(
+  '/payroll/export',
+  requireAnyPermission(PERMISSIONS.REPORTS_EXPORT),
+  validate(payrollReportSchema.extend({ format: z.enum(['pdf', 'csv', 'json']).optional().default('pdf' as any) }), 'query'),
+  (req, res, next) => reportController.exportPayrollReport(req, res).catch(next)
 );
 
 export default router;

@@ -9,6 +9,11 @@ export class EmployeeController {
     return sendPaginated(res, result.items, result.meta);
   }
 
+  async listBirthdays(req: AuthenticatedRequest, res: Response) {
+    const data = await employeeService.listBirthdays(req.user!.companyId);
+    return sendSuccess(res, data);
+  }
+
   async getById(req: AuthenticatedRequest, res: Response) {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     const data = await employeeService.getById(req.user!, id);

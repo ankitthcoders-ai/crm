@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../config/database';
 import { calendarDateOnly } from '../utils/date';
+import { getMonthDateRange } from '../utils/working-days';
 
 export class AttendanceRepository {
   async findToday(employeeId: string) {
@@ -55,6 +56,55 @@ export class AttendanceRepository {
     ]);
 
     return { items, total };
+  }
+
+  async getMonthlySummary(
+    companyId: string,
+    employeeId: string,
+    year: number,
+    month: number
+  ): Promise<{
+    presentDays: number;
+    absentDays: number;
+    lateDays: number;
+    leaveDays: number;
+    halfDays: number;
+  }> {
+    const { startDate, endDate } = getMonthDateRange(year, month);
+
+    const records = await prisma.attendance.findMany({
+      where: {
+        employeeId,
+        date: { gte: startDate, lte: endDate },
+        employee: { companyId, deletedAt: null },
+      },
+    });
+
+    let presentDays = 0;
+    let lateDays = 0;
+    let leaveDays = 0;
+    let halfDays = 0;
+
+    for (const r of records) {
+      switch (r.status) {
+        case 'PRESENT':
+        case 'REMOTE':
+          presentDays++;
+          break;
+        case 'LATE':
+          lateDays++;
+          presentDays++;
+          break;
+        case 'HALF_DAY':
+          halfDays++;
+          break;
+        case 'ON_LEAVE':
+          leaveDays++;
+          break;
+      }
+    }
+
+    return { presentDays: presentDays + lateDays + halfDays, absentDays: 0, lateDays, leaveDays, halfDays };
   }
 
   async createCheckIn(

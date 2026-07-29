@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CreditCard, Sparkles } from 'lucide-react';
+import { CreditCard, Sparkles, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -154,26 +154,37 @@ export function SubscriptionsPage() {
 
           <div className="grid gap-4 md:grid-cols-3">
             {plans.map((plan) => (
-              <Card key={plan.id}>
+              <Card key={plan.id} className="flex flex-col">
                 <CardHeader>
                   <CardTitle className="text-base">{plan.displayName}</CardTitle>
                   <p className="text-2xl font-bold">
-                    ${Number(plan.monthlyPrice).toLocaleString()}
+                    ₹{Number(plan.monthlyPrice).toLocaleString('en-IN')}
                     <span className="text-sm font-normal text-muted-foreground">/mo</span>
                   </p>
                 </CardHeader>
-                <CardContent className="space-y-3">
+                <CardContent className="space-y-3 flex flex-col h-full">
                   <p className="text-sm text-muted-foreground">{plan.description || plan.name}</p>
                   <p className="text-xs">
                     Up to {plan.maxUsers} users · {plan.maxProjects} projects
                   </p>
-                  <Button
-                    size="sm"
-                    disabled={upgrading}
-                    onClick={() => upgrade(plan.id)}
-                  >
-                    Select plan
-                  </Button>
+                  <ul className="space-y-2 mt-4 text-sm text-muted-foreground flex-1">
+                    {plan.features?.map((feature, idx) => (
+                      <li key={idx} className="flex items-start gap-2">
+                        <Check className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="pt-4 mt-auto">
+                    <Button
+                      className="w-full"
+                      size="sm"
+                      disabled={upgrading}
+                      onClick={() => upgrade(plan.id)}
+                    >
+                      Select plan
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ))}
@@ -200,7 +211,7 @@ export function SubscriptionsPage() {
                     <tbody>
                       {invoices.map((inv) => (
                         <tr key={inv.id} className="border-b">
-                          <td className="p-3">${Number(inv.amount).toLocaleString()}</td>
+                          <td className="p-3">₹{Number(inv.amount).toLocaleString('en-IN')}</td>
                           <td className="p-3">
                             <Badge variant="outline">{inv.status}</Badge>
                           </td>

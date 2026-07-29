@@ -123,6 +123,44 @@ export class LeaveRepository {
     });
   }
 
+  async getUnpaidLeaveDays(
+    companyId: string,
+    employeeId: string,
+    year: number,
+    month: number
+  ): Promise<number> {
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0);
+
+    const requests = await prisma.leaveRequest.findMany({
+      where: {
+        employeeId,
+        status: 'APPROVED',
+        startDate: { lte: endDate },
+        endDate: { gte: startDate },
+        employee: { companyId, deletedAt: null },
+      },
+      include: { leaveType: { select: { isPaid: true } } },
+    });
+
+    let totalUnpaid = 0;
+    for (const req of requests) {
+      if (!req.leaveType.isPaid) {
+        const overlapStart = req.startDate > startDate ? req.startDate : startDate;
+        const overlapEnd = req.endDate < endDate ? req.endDate : endDate;
+        let days = 0;
+        const cur = new Date(overlapStart);
+        while (cur <= overlapEnd) {
+          const dow = cur.getUTCDay();
+          if (dow !== 0 && dow !== 6) days++;
+          cur.setUTCDate(cur.getUTCDate() + 1);
+        }
+        totalUnpaid += days;
+      }
+    }
+    return totalUnpaid;
+  }
+
   async ensureBalances(employeeId: string, companyId: string, year: number) {
     const types = await prisma.leaveType.findMany({ where: { companyId } });
     for (const lt of types) {

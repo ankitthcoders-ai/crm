@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { api, getApiErrorMessage } from '@/lib/api';
 import { formatLastChange, formatLastChangeDate, type LastChange } from '@/lib/audit';
 
@@ -31,6 +32,10 @@ export function AdminUsersPage() {
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [newPassword, setNewPassword] = useState('');
 
   const load = async () => {
     setLoading(true);
@@ -57,6 +62,24 @@ export function AdminUsersPage() {
       await api.patch(`/admin/users/${id}`, data);
       toast.success('User updated');
       load();
+    } catch (e) {
+      toast.error(getApiErrorMessage(e));
+    }
+  };
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedUserId || !newPassword) return;
+    if (newPassword.length < 8) {
+      toast.error('Password must be at least 8 characters');
+      return;
+    }
+    
+    try {
+      await api.post(`/admin/users/${selectedUserId}/change-password`, { newPassword });
+      toast.success('Password changed successfully');
+      setPasswordModalOpen(false);
+      setNewPassword('');
     } catch (e) {
       toast.error(getApiErrorMessage(e));
     }
@@ -144,15 +167,28 @@ export function AdminUsersPage() {
                         )}
                       </td>
                       <td className="p-3">
-                        <select
-                          className="rounded-md border border-input bg-background px-2 py-1 text-xs"
-                          value={u.status}
-                          onChange={(e) => updateUser(u.id, { status: e.target.value })}
-                        >
-                          <option value="ACTIVE">ACTIVE</option>
-                          <option value="INACTIVE">INACTIVE</option>
-                          <option value="SUSPENDED">SUSPENDED</option>
-                        </select>
+                        <div className="flex gap-2 items-center">
+                          <select
+                            className="rounded-md border border-input bg-background px-2 py-1 text-xs"
+                            value={u.status}
+                            onChange={(e) => updateUser(u.id, { status: e.target.value })}
+                          >
+                            <option value="ACTIVE">ACTIVE</option>
+                            <option value="INACTIVE">INACTIVE</option>
+                            <option value="SUSPENDED">SUSPENDED</option>
+                          </select>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="text-xs h-7"
+                            onClick={() => {
+                              setSelectedUserId(u.id);
+                              setPasswordModalOpen(true);
+                            }}
+                          >
+                            Set Password
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -162,6 +198,32 @@ export function AdminUsersPage() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={passwordModalOpen} onOpenChange={setPasswordModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change User Password</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handlePasswordChange} className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">New Password</label>
+              <Input 
+                type="password" 
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Must be at least 8 chars, 1 uppercase, 1 lowercase, 1 number"
+                required
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setPasswordModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit">Save Password</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

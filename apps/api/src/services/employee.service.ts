@@ -40,6 +40,7 @@ function mapEmployee(emp: NonNullable<Awaited<ReturnType<typeof employeeReposito
     designation: emp.designation,
     manager: emp.manager,
     user: emp.user,
+    dateOfBirth: emp.dateOfBirth,
     createdAt: emp.createdAt,
   };
 }
@@ -76,6 +77,24 @@ export class EmployeeService {
     };
   }
 
+  async listBirthdays(companyId: string) {
+    const employees = await prisma.employee.findMany({
+      where: { companyId, deletedAt: null },
+      select: {
+        id: true,
+        dateOfBirth: true,
+        user: {
+          select: {
+            firstName: true,
+            lastName: true,
+            email: true,
+          }
+        }
+      }
+    });
+    return employees;
+  }
+
   async getById(user: NonNullable<AuthenticatedRequest['user']>, id: string) {
     const emp = await employeeRepository.findById(id, user.companyId);
     if (!emp) throw new NotFoundError('Employee not found');
@@ -107,14 +126,20 @@ export class EmployeeService {
       employmentStatus?: string;
       managerId?: string;
       baseSalary?: number;
+      dateOfBirth?: string | null;
     }
   ) {
     const email = input.email.toLowerCase();
-    const existing = await userRepository.findByEmail(email);
-    if (existing) throw new ConflictError('Email already in use');
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser && !existingUser.deletedAt) {
+      throw new ConflictError('Email already in use');
+    }
 
-    const employeeRole = await prisma.role.findUnique({ where: { name: 'EMPLOYEE' } });
-    if (!employeeRole) throw new ValidationError('EMPLOYEE role not found. Run seed.');
+    let employeeRole = await prisma.role.findUnique({ where: { name: 'EMPLOYEE' } });
+    if (!employeeRole) {
+      employeeRole = await prisma.role.findFirst({ where: { name: { not: 'SUPER_ADMIN' } } });
+    }
+    if (!employeeRole) throw new ValidationError('No valid roles found to assign to new employee.');
 
     const code = input.employeeCode ?? (await employeeRepository.getNextCode(actor.companyId));
     const codeTaken = await prisma.employee.findFirst({
@@ -126,48 +151,100 @@ export class EmployeeService {
     const joiningDate = new Date(input.joiningDate);
 
     const result = await prisma.$transaction(async (tx) => {
-      const newUser = await tx.user.create({
-        data: {
-          email,
-          passwordHash,
-          firstName: input.firstName,
-          lastName: input.lastName,
-          companyId: actor.companyId,
-          roleId: employeeRole.id,
-          status: 'ACTIVE',
-          emailVerified: true,
-          emailVerifiedAt: new Date(),
-        },
-      });
-
-      const employee = await tx.employee.create({
-        data: {
-          userId: newUser.id,
-          companyId: actor.companyId,
-          employeeCode: code,
-          departmentId: input.departmentId,
-          designationId: input.designationId,
-          joiningDate,
-          phone: input.phone,
-          employmentStatus: (input.employmentStatus as 'ACTIVE') ?? 'ACTIVE',
-          managerId: input.managerId,
-        },
-        include: {
-          user: {
-            select: {
-              id: true,
-              email: true,
-              firstName: true,
-              lastName: true,
-              status: true,
-              avatarUrl: true,
-            },
+      let user;
+      if (existingUser) {
+        user = await tx.user.update({
+          where: { id: existingUser.id },
+          data: {
+            deletedAt: null,
+            status: 'ACTIVE',
+            firstName: input.firstName,
+            lastName: input.lastName,
+            passwordHash,
+            roleId: employeeRole!.id,
+          }
+        });
+      } else {
+        user = await tx.user.create({
+          data: {
+            email,
+            passwordHash,
+            firstName: input.firstName,
+            lastName: input.lastName,
+            companyId: actor.companyId,
+            roleId: employeeRole!.id,
+            status: 'ACTIVE',
+            emailVerified: true,
+            emailVerifiedAt: new Date(),
           },
-          department: { select: { id: true, name: true, code: true } },
-          designation: { select: { id: true, title: true, level: true } },
-          manager: true,
-        },
-      });
+        });
+      }
+
+      const existingEmp = await tx.employee.findUnique({ where: { userId: user.id } });
+      let employee;
+      if (existingEmp) {
+        employee = await tx.employee.update({
+          where: { id: existingEmp.id },
+          data: {
+            deletedAt: null,
+            employmentStatus: (input.employmentStatus as 'ACTIVE') ?? 'ACTIVE',
+            employeeCode: code,
+            departmentId: input.departmentId,
+            designationId: input.designationId,
+            joiningDate,
+            phone: input.phone,
+            managerId: input.managerId,
+            dateOfBirth: input.dateOfBirth ? new Date(input.dateOfBirth) : null,
+          },
+          include: {
+            user: {
+              select: {
+                id: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+                avatarUrl: true,
+                status: true,
+                role: { select: { id: true, name: true, displayName: true } },
+              },
+            },
+            department: { select: { id: true, name: true, code: true } },
+            designation: { select: { id: true, title: true, level: true } },
+            manager: true,
+          },
+        });
+      } else {
+        employee = await tx.employee.create({
+          data: {
+            userId: user.id,
+            companyId: actor.companyId,
+            employeeCode: code,
+            departmentId: input.departmentId,
+            designationId: input.designationId,
+            joiningDate,
+            phone: input.phone,
+            employmentStatus: (input.employmentStatus as 'ACTIVE') ?? 'ACTIVE',
+            managerId: input.managerId,
+            dateOfBirth: input.dateOfBirth ? new Date(input.dateOfBirth) : null,
+          },
+          include: {
+            user: {
+              select: {
+                id: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+                avatarUrl: true,
+                status: true,
+                role: { select: { id: true, name: true, displayName: true } },
+              },
+            },
+            department: { select: { id: true, name: true, code: true } },
+            designation: { select: { id: true, title: true, level: true } },
+            manager: true,
+          },
+        });
+      }
 
       if (input.baseSalary !== undefined && input.baseSalary !== null) {
         await tx.salaryStructure.create({
@@ -180,7 +257,7 @@ export class EmployeeService {
       }
 
       return employee;
-    });
+    }, { timeout: 20000, maxWait: 5000 });
 
     const full = await employeeRepository.findById(result.id, actor.companyId);
 
@@ -210,6 +287,7 @@ export class EmployeeService {
       phone?: string | null;
       employmentStatus?: string;
       managerId?: string | null;
+      dateOfBirth?: string | null;
     }
   ) {
     const emp = await employeeRepository.findById(id, actor.companyId);
@@ -232,6 +310,7 @@ export class EmployeeService {
         employmentStatus: input.employmentStatus as 'ACTIVE',
       }),
       ...(input.managerId !== undefined && { managerId: input.managerId }),
+      ...(input.dateOfBirth !== undefined && { dateOfBirth: input.dateOfBirth ? new Date(input.dateOfBirth) : null }),
     });
 
     await auditService.log({
@@ -258,7 +337,7 @@ export class EmployeeService {
     const before = employeeAuditSnapshot(emp);
 
     await employeeRepository.softDelete(id);
-    await userRepository.update(emp.userId, { status: 'INACTIVE' });
+    await userRepository.update(emp.userId, { status: 'INACTIVE', deletedAt: new Date() });
 
     await auditService.log({
       companyId: actor.companyId,

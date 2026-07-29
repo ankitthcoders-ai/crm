@@ -78,8 +78,19 @@ export class EmployeeRepository {
   }
 
   async getNextCode(companyId: string): Promise<string> {
-    const count = await prisma.employee.count({ where: { companyId } });
-    return `EMP-${String(count + 1).padStart(3, '0')}`;
+    let count = await prisma.employee.count({ where: { companyId } });
+    let nextCode = `EMP-${String(count + 1).padStart(4, '0')}`;
+
+    while (true) {
+      const existing = await prisma.employee.findFirst({
+        where: { companyId, employeeCode: nextCode }
+      });
+      if (!existing) break;
+      count++;
+      nextCode = `EMP-${String(count + 1).padStart(4, '0')}`;
+    }
+
+    return nextCode;
   }
 
   async softDelete(id: string) {

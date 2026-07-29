@@ -77,6 +77,57 @@ export class PayrollRepository {
       },
     });
   }
+
+  async generatePayrolls(companyId: string, month: number, year: number, data: Array<Prisma.PayrollCreateManyInput>) {
+    return prisma.$transaction(
+      data.map((payroll) => 
+        prisma.payroll.upsert({
+          where: { employeeId_month_year: { employeeId: payroll.employeeId, month, year } },
+          update: {
+             baseSalary: payroll.baseSalary,
+             allowances: payroll.allowances,
+             deductions: payroll.deductions,
+             netSalary: payroll.netSalary,
+             workingDays: payroll.workingDays ?? 0,
+             presentDays: payroll.presentDays ?? 0,
+             absentDays: payroll.absentDays ?? 0,
+             unpaidLeaveDays: payroll.unpaidLeaveDays ?? 0,
+             lateDays: payroll.lateDays ?? 0,
+             payableDays: payroll.payableDays ?? 0,
+             status: 'DRAFT'
+          },
+          create: payroll
+        })
+      )
+    );
+  }
+
+  async findById(companyId: string, id: string) {
+    return prisma.payroll.findFirst({
+      where: { id, employee: { companyId, deletedAt: null } },
+      include: {
+        ...payrollInclude,
+        employee: {
+          include: {
+            user: { select: { firstName: true, lastName: true, email: true } },
+            department: { select: { name: true } },
+            designation: { select: { title: true } },
+          },
+        },
+      },
+    });
+  }
+
+  async updateStatus(id: string, status: 'PROCESSED' | 'PAID' | 'CANCELLED') {
+    return prisma.payroll.update({
+      where: { id },
+      data: { 
+        status,
+        ...(status === 'PAID' ? { paidAt: new Date() } : {})
+      },
+      include: payrollInclude,
+    });
+  }
 }
 
 export const payrollRepository = new PayrollRepository();

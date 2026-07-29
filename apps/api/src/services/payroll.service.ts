@@ -1,7 +1,14 @@
+import { prisma } from '../config/database';
 import { NotFoundError } from '../utils/errors';
 import { payrollRepository } from '../repositories/payroll.repository';
 import { employeeRepository } from '../repositories/employee.repository';
+import { attendanceRepository } from '../repositories/attendance.repository';
+import { leaveRepository } from '../repositories/leave.repository';
+import { notificationService } from './notification.service';
 import type { AuthenticatedRequest } from '../middleware/auth.middleware';
+import { PERMISSIONS } from '@crm/shared';
+import { Prisma } from '@prisma/client';
+import { getWorkingDaysInMonth, calcPerDaySalary, getMonthDateRange } from '../utils/working-days';
 
 function decimalToNumber(value: unknown): number {
   if (typeof value === 'number') return value;
@@ -17,8 +24,19 @@ export class PayrollService {
     user: NonNullable<AuthenticatedRequest['user']>,
     query: { page: number; limit: number; month?: number; year?: number; employeeId?: string }
   ) {
-    const { items, total } = await payrollRepository.list(user.companyId, query);
+    const canViewAll = user.permissions.includes(PERMISSIONS.PAYROLL_READ) || user.permissions.includes(PERMISSIONS.PAYROLL_WRITE) || user.permissions.includes(PERMISSIONS.PAYROLL_PROCESS);
+    let employeeId = query.employeeId;
+    if (!canViewAll) {
+      if (!user.employeeId) throw new NotFoundError('No employee profile linked');
+      employeeId = user.employeeId;
+    }
+
+    const company = await prisma.company.findUnique({ where: { id: user.companyId }, select: { currency: true } });
+    const currency = company?.currency ?? 'USD';
+
+    const { items, total } = await payrollRepository.list(user.companyId, { ...query, employeeId });
     return {
+      currency,
       items: items.map((p) => ({
         ...p,
         baseSalary: decimalToNumber(p.baseSalary),
@@ -27,6 +45,7 @@ export class PayrollService {
         bonus: decimalToNumber(p.bonus),
         tax: decimalToNumber(p.tax),
         netSalary: decimalToNumber(p.netSalary),
+        payableDays: decimalToNumber(p.payableDays),
       })),
       meta: {
         page: query.page,
@@ -65,6 +84,183 @@ export class PayrollService {
       effectiveFrom: new Date(input.effectiveFrom),
     });
     return { ...result, baseSalary: decimalToNumber(result.baseSalary) };
+  }
+
+  async generate(user: NonNullable<AuthenticatedRequest['user']>, month: number, year: number) {
+    const employees = await employeeRepository.findMany(user.companyId, { status: 'ACTIVE', page: 1, limit: 10000 });
+    const salaryStructures = await payrollRepository.listSalaryStructures(user.companyId);
+    const structureMap = new Map(salaryStructures.map(s => [s.employeeId, s]));
+
+    const settings = await prisma.companySettings.findUnique({ where: { companyId: user.companyId } });
+    const workDays = (settings?.workDays as number[]) ?? [1, 2, 3, 4, 5];
+
+    const holidays = await prisma.holiday.findMany({
+      where: {
+        companyId: user.companyId,
+        date: {
+          gte: new Date(year, month - 1, 1),
+          lte: new Date(year, month, 0),
+        },
+      },
+      select: { date: true, isOptional: true },
+    });
+
+    const workingDays = getWorkingDaysInMonth(year, month, workDays, holidays);
+
+    const payrollsToCreate: Prisma.PayrollCreateManyInput[] = [];
+
+    for (const employee of employees.items) {
+      const structure = structureMap.get(employee.id);
+      if (!structure) continue;
+
+      const baseSalary = decimalToNumber(structure.baseSalary);
+      const allowancesList = structure.allowances as Array<{ label: string; amount: number }>;
+      const deductionsList = structure.deductions as Array<{ label: string; amount: number }>;
+
+      const totalAllowances = allowancesList.reduce((sum, a) => sum + Number(a.amount), 0);
+      const totalDeductions = deductionsList.reduce((sum, d) => sum + Number(d.amount), 0);
+
+      const { startDate, endDate } = getMonthDateRange(year, month);
+      const daysInMonth = new Date(year, month, 0).getDate();
+
+      let presentCount = 0;
+      let lateCount = 0;
+      let halfDayCount = 0;
+      let onLeaveCount = 0;
+
+      const attendanceRecords = await prisma.attendance.findMany({
+        where: {
+          employeeId: employee.id,
+          date: { gte: startDate, lte: endDate },
+        },
+        select: { status: true, date: true },
+      });
+
+      const attendedDates = new Set<string>();
+      for (const r of attendanceRecords) {
+        const dateKey = `${r.date.getFullYear()}-${r.date.getMonth() + 1}-${r.date.getDate()}`;
+        attendedDates.add(dateKey);
+        switch (r.status) {
+          case 'PRESENT':
+          case 'REMOTE':
+            presentCount++;
+            break;
+          case 'LATE':
+            lateCount++;
+            presentCount++;
+            break;
+          case 'HALF_DAY':
+            halfDayCount++;
+            break;
+          case 'ON_LEAVE':
+            onLeaveCount++;
+            break;
+        }
+      }
+
+      const holidayDates = new Set(
+        holidays.map(h => `${h.date.getFullYear()}-${h.date.getMonth() + 1}-${h.date.getDate()}`)
+      );
+
+      let absentCount = 0;
+      for (let day = 1; day <= daysInMonth; day++) {
+        const date = new Date(year, month - 1, day);
+        const dow = date.getDay();
+        const dateKey = `${year}-${month}-${day}`;
+        if (!workDays.includes(dow)) continue;
+        if (holidayDates.has(dateKey)) continue;
+        if (!attendedDates.has(dateKey)) {
+          absentCount++;
+        }
+      }
+
+      const unpaidLeaveDays = await leaveRepository.getUnpaidLeaveDays(
+        user.companyId,
+        employee.id,
+        year,
+        month
+      );
+
+      const presentDays = presentCount + halfDayCount;
+      const basePayableDays = workingDays - absentCount - unpaidLeaveDays - (halfDayCount * 0.5);
+      const finalPayableDays = Math.max(0, basePayableDays);
+
+      const perDaySalary = calcPerDaySalary(baseSalary, workingDays);
+      const earnedSalary = Math.round(perDaySalary * finalPayableDays * 100) / 100;
+
+      const netSalary = earnedSalary + totalAllowances - totalDeductions;
+
+      payrollsToCreate.push({
+        employeeId: employee.id,
+        month,
+        year,
+        baseSalary,
+        allowances: totalAllowances,
+        deductions: totalDeductions,
+        bonus: 0,
+        tax: 0,
+        netSalary,
+        workingDays,
+        presentDays,
+        absentDays: absentCount,
+        unpaidLeaveDays,
+        lateDays: lateCount,
+        payableDays: finalPayableDays,
+        status: 'DRAFT',
+      });
+    }
+
+    if (payrollsToCreate.length === 0) {
+      return [];
+    }
+
+    await payrollRepository.generatePayrolls(user.companyId, month, year, payrollsToCreate);
+
+    const { items } = await payrollRepository.list(user.companyId, { page: 1, limit: 1000, month, year });
+
+    for (const payroll of items) {
+      const emp = employees.items.find(e => e.id === payroll.employeeId);
+      if (emp?.userId) {
+        await notificationService.notifyPayrollProcessed(
+          payroll.employeeId,
+          month,
+          year,
+          decimalToNumber(payroll.netSalary)
+        );
+      }
+    }
+
+    const company = await prisma.company.findUnique({ where: { id: user.companyId }, select: { currency: true } });
+    const currency = company?.currency ?? 'USD';
+
+    return {
+      currency,
+      items: items.map((p) => ({
+        ...p,
+        baseSalary: decimalToNumber(p.baseSalary),
+        allowances: decimalToNumber(p.allowances),
+        deductions: decimalToNumber(p.deductions),
+        bonus: decimalToNumber(p.bonus),
+        tax: decimalToNumber(p.tax),
+        netSalary: decimalToNumber(p.netSalary),
+        payableDays: decimalToNumber(p.payableDays),
+      })),
+    };
+  }
+
+  async getById(companyId: string, id: string) {
+    return payrollRepository.findById(companyId, id);
+  }
+
+  async updateStatus(user: NonNullable<AuthenticatedRequest['user']>, id: string, status: 'PROCESSED' | 'PAID' | 'CANCELLED') {
+    const updated = await payrollRepository.updateStatus(id, status);
+    return {
+      ...updated,
+      baseSalary: decimalToNumber(updated.baseSalary),
+      allowances: decimalToNumber(updated.allowances),
+      deductions: decimalToNumber(updated.deductions),
+      netSalary: decimalToNumber(updated.netSalary),
+    };
   }
 }
 

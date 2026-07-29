@@ -6,33 +6,43 @@ import { toast } from 'sonner';
 
 const WS_URL = import.meta.env.VITE_WS_URL || '';
 
-let socket: Socket | null = null;
+let socketInstance: Socket | null = null;
+
+export const getSocket = () => socketInstance;
+
+function getAccessToken(): string | null {
+  const match = document.cookie.match(/(?:^|;\s*)accessToken=([^;]*)/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
 
 export function useSocket() {
   const dispatch = useAppDispatch();
-  const { isAuthenticated, accessToken } = useAppSelector((s) => s.auth);
+  const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated);
 
   useEffect(() => {
-    if (!isAuthenticated || !accessToken) {
-      socket?.disconnect();
-      socket = null;
+    if (!isAuthenticated) {
+      socketInstance?.disconnect();
+      socketInstance = null;
       return;
     }
 
-    socket = io(WS_URL || window.location.origin, {
-      auth: { token: accessToken },
+    const token = getAccessToken();
+    if (!token) return;
+
+    socketInstance = io(WS_URL || window.location.origin, {
+      auth: { token },
       path: '/socket.io',
       transports: ['websocket', 'polling'],
     });
 
-    socket.on('notification:new', (notification) => {
+    socketInstance.on('notification:new', (notification) => {
       dispatch(addNotification(notification));
       toast.info(notification.title, { description: notification.message });
     });
 
     return () => {
-      socket?.disconnect();
-      socket = null;
+      socketInstance?.disconnect();
+      socketInstance = null;
     };
-  }, [isAuthenticated, accessToken, dispatch]);
+  }, [isAuthenticated, dispatch]);
 }

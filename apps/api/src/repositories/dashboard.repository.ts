@@ -106,6 +106,9 @@ export class DashboardRepository {
       return {
         ...base,
         teamTasks: base.tasks,
+        pendingLeaves: await prisma.leaveRequest.count({
+          where: { employee: { companyId }, status: 'PENDING' },
+        }),
       };
     }
 
@@ -127,6 +130,9 @@ export class DashboardRepository {
         ...base,
         myTasks: assignedTasks.length,
         assignedTasks,
+        pendingLeaves: await prisma.leaveRequest.count({
+          where: { employeeId, status: 'PENDING' },
+        }),
         leaveBalance: 0,
       };
     }
@@ -134,6 +140,7 @@ export class DashboardRepository {
     return {
       ...base,
       myTasks: base.tasks,
+      pendingLeaves: 0,
       leaveBalance: 0,
     };
   }

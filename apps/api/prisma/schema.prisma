@@ -372,22 +372,22 @@ model Designation {
 }
 
 model Employee {
-  id              String           @id @default(uuid())
-  userId          String           @unique @map("user_id")
-  companyId       String           @map("company_id")
-  employeeCode    String           @map("employee_code")
-  departmentId    String?          @map("department_id")
-  designationId   String?          @map("designation_id")
-  joiningDate     DateTime         @map("joining_date")
+  id               String           @id @default(uuid())
+  userId           String           @unique @map("user_id")
+  companyId        String           @map("company_id")
+  employeeCode     String           @map("employee_code")
+  departmentId     String?          @map("department_id")
+  designationId    String?          @map("designation_id")
+  joiningDate      DateTime         @map("joining_date")
   employmentStatus EmploymentStatus @default(ACTIVE) @map("employment_status")
-  phone           String?
-  address         String?
-  dateOfBirth     DateTime?        @map("date_of_birth")
-  emergencyContact Json?           @map("emergency_contact")
-  managerId       String?          @map("manager_id")
-  createdAt       DateTime         @default(now()) @map("created_at")
-  updatedAt       DateTime         @updatedAt @map("updated_at")
-  deletedAt       DateTime?        @map("deleted_at")
+  phone            String?
+  address          String?
+  dateOfBirth      DateTime?        @map("date_of_birth")
+  emergencyContact Json?            @map("emergency_contact")
+  managerId        String?          @map("manager_id")
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+  deletedAt        DateTime?        @map("deleted_at")
 
   user            User              @relation(fields: [userId], references: [id])
   company         Company           @relation(fields: [companyId], references: [id])
@@ -597,21 +597,27 @@ model SalaryStructure {
 }
 
 model Payroll {
-  id            String        @id @default(uuid())
-  employeeId    String        @map("employee_id")
-  month         Int
-  year          Int
-  baseSalary    Decimal       @map("base_salary") @db.Decimal(12, 2)
-  allowances    Decimal       @default(0) @db.Decimal(12, 2)
-  deductions    Decimal       @default(0) @db.Decimal(12, 2)
-  bonus         Decimal       @default(0) @db.Decimal(12, 2)
-  tax           Decimal       @default(0) @db.Decimal(12, 2)
-  netSalary     Decimal       @map("net_salary") @db.Decimal(12, 2)
-  status        PayrollStatus @default(DRAFT)
-  payslipUrl    String?       @map("payslip_url")
-  paidAt        DateTime?     @map("paid_at")
-  createdAt     DateTime      @default(now()) @map("created_at")
-  updatedAt     DateTime      @updatedAt @map("updated_at")
+  id             String        @id @default(uuid())
+  employeeId     String        @map("employee_id")
+  month          Int
+  year           Int
+  baseSalary     Decimal       @map("base_salary") @db.Decimal(12, 2)
+  allowances     Decimal       @default(0) @db.Decimal(12, 2)
+  deductions     Decimal       @default(0) @db.Decimal(12, 2)
+  bonus          Decimal       @default(0) @db.Decimal(12, 2)
+  tax            Decimal       @default(0) @db.Decimal(12, 2)
+  netSalary      Decimal       @map("net_salary") @db.Decimal(12, 2)
+  workingDays    Int           @default(0) @map("working_days")
+  presentDays    Int           @default(0) @map("present_days")
+  absentDays     Int           @default(0) @map("absent_days")
+  unpaidLeaveDays Int          @default(0) @map("unpaid_leave_days")
+  lateDays       Int           @default(0) @map("late_days")
+  payableDays    Decimal       @default(0) @map("payable_days") @db.Decimal(12, 2)
+  status         PayrollStatus @default(DRAFT)
+  payslipUrl     String?       @map("payslip_url")
+  paidAt         DateTime?     @map("paid_at")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
 
   employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 

@@ -9,9 +9,6 @@ const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const prisma = new client_1.PrismaClient();
 const ROLES = [
     { name: 'SUPER_ADMIN', displayName: 'Super Admin', description: 'Full system access' },
-    { name: 'HR', displayName: 'HR Manager', description: 'HR and payroll management' },
-    { name: 'MANAGER', displayName: 'Manager', description: 'Team and project management' },
-    { name: 'EMPLOYEE', displayName: 'Employee', description: 'Standard employee access' },
 ];
 async function main() {
     console.log('Seeding database...');
@@ -47,7 +44,7 @@ async function main() {
         }
     }
     const defaultLeaveTypes = [
-        { code: 'ANNUAL', name: 'Annual Leave', daysPerYear: 20 },
+        { code: 'ANNUAL', name: 'Annual Leave', daysPerYear: 18 },
         { code: 'SICK', name: 'Sick Leave', daysPerYear: 10 },
         { code: 'CASUAL', name: 'Casual Leave', daysPerYear: 5 },
     ];
@@ -77,39 +74,15 @@ async function main() {
         });
     }
     const superAdminRole = await prisma.role.findUnique({ where: { name: 'SUPER_ADMIN' } });
-    const hrRole = await prisma.role.findUnique({ where: { name: 'HR' } });
-    const managerRole = await prisma.role.findUnique({ where: { name: 'MANAGER' } });
-    const employeeRole = await prisma.role.findUnique({ where: { name: 'EMPLOYEE' } });
     const passwordHash = await bcryptjs_1.default.hash('Password@123', 12);
     const demoUsers = [
         {
-            email: 'admin@acme.com',
-            firstName: 'Alex',
-            lastName: 'Admin',
+            email: 'thcoders@admin.com',
+            firstName: 'Tanya',
+            lastName: '',
             roleId: superAdminRole.id,
-            code: 'EMP-001',
-        },
-        {
-            email: 'hr@acme.com',
-            firstName: 'Hannah',
-            lastName: 'Reed',
-            roleId: hrRole.id,
-            code: 'EMP-002',
-        },
-        {
-            email: 'manager@acme.com',
-            firstName: 'Marcus',
-            lastName: 'Chen',
-            roleId: managerRole.id,
-            code: 'EMP-003',
-        },
-        {
-            email: 'employee@acme.com',
-            firstName: 'Emma',
-            lastName: 'Wilson',
-            roleId: employeeRole.id,
-            code: 'EMP-004',
-        },
+            code: 'EMP-0001',
+        }
     ];
     for (const u of demoUsers) {
         const existing = await prisma.user.findUnique({ where: { email: u.email } });

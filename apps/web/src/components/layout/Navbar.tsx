@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Bell,
   Moon,
   Sun,
   LogOut,
@@ -18,6 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
 import { setNotifications } from '@/store/slices/notificationSlice';
+import { NotificationPanel } from './NotificationPanel';
 
 interface NavbarProps {
   onMenuClick?: () => void;
@@ -28,7 +28,6 @@ export function Navbar({ onMenuClick }: NavbarProps) {
   const navigate = useNavigate();
   const user = useAppSelector((s) => s.auth.user);
   const theme = useAppSelector((s) => s.theme.theme);
-  const unreadCount = useAppSelector((s) => s.notifications.unreadCount);
 
   const initials = user
     ? `${user.firstName[0]}${user.lastName[0]}`
@@ -62,19 +61,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
       </div>
 
       <div className="ml-auto flex items-center gap-2">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="relative"
-          onClick={() => navigate('/notifications')}
-        >
-          <Bell className="h-5 w-5" />
-          {unreadCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
-              {unreadCount}
-            </span>
-          )}
-        </Button>
+        <NotificationPanel />
 
         <Button variant="ghost" size="icon" onClick={toggleTheme}>
           {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}

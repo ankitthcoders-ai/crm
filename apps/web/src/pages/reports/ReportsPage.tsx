@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BarChart3 } from 'lucide-react';
+import { BarChart3, Download, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -53,6 +53,7 @@ export function ReportsPage() {
 
   const month = useMemo(() => new Date().getMonth() + 1, []);
   const year = useMemo(() => new Date().getFullYear(), []);
+  const [exporting, setExporting] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -94,6 +95,30 @@ export function ReportsPage() {
   useEffect(() => {
     load();
   }, []);
+
+  const handleExport = async (format: 'pdf' | 'csv' | 'json') => {
+    setExporting(true);
+    try {
+      const response = await api.get('/reports/payroll/export', {
+        params: { month, year, format },
+        responseType: 'blob',
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      const disposition = response.headers['content-disposition'] ?? '';
+      const match = disposition.match(/filename="?(.+?)"?$/);
+      link.download = match?.[1] ?? `payroll-report-${month}-${year}.${format}`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (e) {
+      toast.error(getApiErrorMessage(e));
+    } finally {
+      setExporting(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -147,6 +172,17 @@ export function ReportsPage() {
           <CardContent className="pt-6">
             <p className="text-sm text-muted-foreground">Payroll items</p>
             <p className="text-2xl font-bold">{payroll?.totals?.count ?? 0}</p>
+            {canPayrollReport && (
+              <div className="flex gap-1 mt-2">
+                <Button size="sm" variant="outline" disabled={exporting} onClick={() => handleExport('pdf')} title="Download PDF report">
+                  <FileText className={`h-4 w-4 mr-1 ${exporting ? 'animate-pulse' : ''}`} />
+                  PDF
+                </Button>
+                <Button size="sm" variant="ghost" disabled={exporting} onClick={() => handleExport('csv')} title="Download CSV">
+                  <Download className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

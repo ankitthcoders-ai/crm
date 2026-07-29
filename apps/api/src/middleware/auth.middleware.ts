@@ -22,12 +22,17 @@ export async function authenticate(
   next: NextFunction
 ): Promise<void> {
   try {
+    const cookieToken = req.cookies.accessToken;
     const header = req.headers.authorization;
-    if (!header?.startsWith('Bearer ')) {
-      throw new UnauthorizedError('Access token required');
+    
+    let token = cookieToken;
+    if (!token && header?.startsWith('Bearer ')) {
+      token = header.slice(7);
     }
 
-    const token = header.slice(7);
+    if (!token) {
+      throw new UnauthorizedError('Access token required');
+    }
     const payload = verifyAccessToken(token);
     const user = await userRepository.findById(payload.sub);
 

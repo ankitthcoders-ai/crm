@@ -44,6 +44,35 @@ export function initSocketIO(httpServer: HttpServer): Server {
       io.to(`user:${userId}`).emit('notification:updated', { id: notificationId, isRead: true });
     });
 
+    // Chat Events
+    socket.on('chat:join', (roomId: string) => {
+      socket.join(`chat:${roomId}`);
+      logger.debug(`User ${userId} joined chat room ${roomId}`);
+    });
+
+    socket.on('chat:leave', (roomId: string) => {
+      socket.leave(`chat:${roomId}`);
+      logger.debug(`User ${userId} left chat room ${roomId}`);
+    });
+
+    socket.on('chat:typing', (data: { roomId: string; isTyping: boolean }) => {
+      // Broadcast typing indicator to everyone in the room except the sender
+      socket.to(`chat:${data.roomId}`).emit('chat:typing', {
+        roomId: data.roomId,
+        userId,
+        isTyping: data.isTyping
+      });
+    });
+
+    socket.on('chat:read', (data: { roomId: string; messageId: string }) => {
+      // Broadcast read receipt to the room
+      socket.to(`chat:${data.roomId}`).emit('chat:read', {
+        roomId: data.roomId,
+        messageId: data.messageId,
+        userId
+      });
+    });
+
     socket.on('disconnect', () => {
       logger.debug(`Socket disconnected: ${userId}`);
     });

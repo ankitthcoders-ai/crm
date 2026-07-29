@@ -4,7 +4,12 @@ import { authenticate } from '../middleware/auth.middleware';
 import { requireAnyPermission } from '../middleware/rbac.middleware';
 import { validate } from '../middleware/validate.middleware';
 import { payrollController } from '../controllers/payroll.controller';
-import { listPayrollSchema, upsertSalaryStructureSchema } from '../validators/payroll.validator';
+import {
+  listPayrollSchema,
+  upsertSalaryStructureSchema,
+  generatePayrollSchema,
+  updatePayrollStatusSchema,
+} from '../validators/payroll.validator';
 
 const router = Router();
 router.use(authenticate);
@@ -27,6 +32,26 @@ router.post(
   requireAnyPermission(PERMISSIONS.PAYROLL_WRITE),
   validate(upsertSalaryStructureSchema),
   (req, res, next) => payrollController.upsertSalaryStructure(req, res).catch(next)
+);
+
+router.post(
+  '/generate',
+  requireAnyPermission(PERMISSIONS.PAYROLL_WRITE),
+  validate(generatePayrollSchema),
+  (req, res, next) => payrollController.generate(req, res).catch(next)
+);
+
+router.patch(
+  '/:id/status',
+  requireAnyPermission(PERMISSIONS.PAYROLL_WRITE),
+  validate(updatePayrollStatusSchema),
+  (req, res, next) => payrollController.updateStatus(req, res).catch(next)
+);
+
+router.get(
+  '/:id/payslip',
+  requireAnyPermission(PERMISSIONS.PAYROLL_READ),
+  (req, res, next) => payrollController.downloadPayslip(req, res).catch(next)
 );
 
 export default router;

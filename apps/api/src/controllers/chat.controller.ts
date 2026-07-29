@@ -13,6 +13,10 @@ async function emitToRoomMembers(roomId: string, eventName: string, payload: any
     const io = getIO();
     if (!io) return;
 
+    // Emit to the specific chat room channel for active participants
+    io.to(`chat:${roomId}`).emit(eventName, payload);
+
+    // Also emit to individual user channels for background notifications (e.g. unread badges)
     const members = await prisma.chatMember.findMany({
       where: { roomId },
       select: { userId: true },

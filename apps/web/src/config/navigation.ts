@@ -13,6 +13,9 @@ import {
   Building2,
   CreditCard,
   Palette,
+  MessageSquare,
+  PartyPopper,
+  Cake,
   type LucideIcon,
 } from 'lucide-react';
 import { ROLES, type RoleName } from '@crm/shared';
@@ -35,6 +38,8 @@ export const mainNavigation: NavItem[] = [
   },
   { title: 'Attendance', href: '/attendance', icon: Clock },
   { title: 'Leaves', href: '/leaves', icon: CalendarDays },
+  { title: 'Birthdays', href: '/birthdays', icon: Cake },
+  { title: 'Holidays', href: '/holidays', icon: PartyPopper },
   {
     title: 'Payroll',
     href: '/payroll',
@@ -50,6 +55,7 @@ export const mainNavigation: NavItem[] = [
     roles: [ROLES.SUPER_ADMIN, ROLES.HR, ROLES.MANAGER],
   },
   { title: 'Notifications', href: '/notifications', icon: Bell },
+  { title: 'Chat', href: '/chat', icon: MessageSquare },
 ];
 
 export const adminNavigation: NavItem[] = [

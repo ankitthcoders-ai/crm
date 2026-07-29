@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { Toaster } from 'sonner';
+import { Loader2 } from 'lucide-react';
 import { store } from '@/store';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { fetchMe } from '@/store/slices/authSlice';
@@ -14,14 +15,17 @@ import { ForgotPasswordPage } from '@/pages/auth/ForgotPasswordPage';
 import { DashboardPage } from '@/pages/dashboard/DashboardPage';
 import { ProfilePage } from '@/pages/ProfilePage';
 import { EmployeesPage } from '@/pages/employees/EmployeesPage';
+import { BirthdaysPage } from '@/pages/employees/BirthdaysPage';
 import { AttendancePage } from '@/pages/attendance/AttendancePage';
 import { LeavesPage } from '@/pages/leaves/LeavesPage';
+import { HolidaysPage } from '@/pages/leaves/HolidaysPage';
 import { ProjectsPage } from '@/pages/projects/ProjectsPage';
 import { TasksPage } from '@/pages/tasks/TasksPage';
 import { PayrollPage } from '@/pages/payroll/PayrollPage';
 import { ReportsPage } from '@/pages/reports/ReportsPage';
 import { SettingsPage } from '@/pages/settings/SettingsPage';
 import { NotificationsPage } from '@/pages/notifications/NotificationsPage';
+import { ChatPage } from '@/pages/chat/ChatPage';
 import { AdminUsersPage } from '@/pages/admin/AdminUsersPage';
 import { RolesPage } from '@/pages/admin/RolesPage';
 import { SubscriptionsPage } from '@/pages/subscriptions/SubscriptionsPage';
@@ -31,19 +35,22 @@ import { useSocket } from '@/hooks/useSocket';
 
 function AppRoutes() {
   const dispatch = useAppDispatch();
-  const { isAuthenticated, accessToken } = useAppSelector((s) => s.auth);
+  const { isAuthenticated, isInitialized } = useAppSelector((s) => s.auth);
 
   useEffect(() => {
     dispatch(initTheme());
+    dispatch(fetchMe());
   }, [dispatch]);
 
-  useEffect(() => {
-    if (accessToken) {
-      dispatch(fetchMe());
-    }
-  }, [dispatch, accessToken]);
-
   useSocket();
+
+  if (!isInitialized) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <Routes>
@@ -69,7 +76,9 @@ function AppRoutes() {
           }
         />
         <Route path="attendance" element={<AttendancePage />} />
+        <Route path="birthdays" element={<BirthdaysPage />} />
         <Route path="leaves" element={<LeavesPage />} />
+        <Route path="holidays" element={<HolidaysPage />} />
         <Route
           path="payroll"
           element={
@@ -89,6 +98,7 @@ function AppRoutes() {
           }
         />
         <Route path="notifications" element={<NotificationsPage />} />
+        <Route path="chat" element={<ChatPage />} />
         <Route
           path="admin/users"
           element={
@@ -141,7 +151,7 @@ export default function App() {
     <Provider store={store}>
       <BrowserRouter>
         <AppRoutes />
-        <Toaster richColors position="top-right" />
+        <Toaster richColors position="top-right" closeButton duration={3000} />
       </BrowserRouter>
     </Provider>
   );

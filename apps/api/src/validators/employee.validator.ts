@@ -25,6 +25,8 @@ export const createEmployeeSchema = z.object({
     .enum(['ACTIVE', 'PROBATION', 'ON_LEAVE', 'TERMINATED', 'RESIGNED'])
     .default('ACTIVE'),
   managerId: z.string().uuid().optional(),
+  dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format (YYYY-MM-DD)').optional().nullable(),
+  baseSalary: z.number().optional(),
 });
 
 export const updateEmployeeSchema = z.object({
@@ -36,7 +38,8 @@ export const updateEmployeeSchema = z.object({
   employmentStatus: z
     .enum(['ACTIVE', 'PROBATION', 'ON_LEAVE', 'TERMINATED', 'RESIGNED'])
     .optional(),
-  managerId: z.string().uuid().nullable().optional(),
+  managerId: z.string().uuid('Invalid manager ID format').optional().nullable(),
+  dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format (YYYY-MM-DD)').optional().nullable(),
 });
 
 export const createDepartmentSchema = z.object({

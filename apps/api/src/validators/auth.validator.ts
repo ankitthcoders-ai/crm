@@ -19,7 +19,7 @@ export const registerSchema = z.object({
 });
 
 export const refreshSchema = z.object({
-  refreshToken: z.string().min(1),
+  refreshToken: z.string().optional(),
 });
 
 export const forgotPasswordSchema = z.object({
@@ -38,4 +38,14 @@ export const resetPasswordSchema = z.object({
 
 export const verifyEmailSchema = z.object({
   token: z.string().min(1),
+});
+
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, 'Current password is required'),
+  newPassword: z
+    .string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(/[A-Z]/, 'Must contain uppercase')
+    .regex(/[a-z]/, 'Must contain lowercase')
+    .regex(/[0-9]/, 'Must contain number'),
 });

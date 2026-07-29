@@ -3,6 +3,7 @@ import authReducer from './slices/authSlice';
 import themeReducer from './slices/themeSlice';
 import notificationReducer from './slices/notificationSlice';
 import companyReducer from './slices/companySlice';
+import chatReducer from './slices/chatSlice';
 
 export const store = configureStore({
   reducer: {
@@ -10,6 +11,7 @@ export const store = configureStore({
     theme: themeReducer,
     notifications: notificationReducer,
     company: companyReducer,
+    chat: chatReducer,
   },
 });
 

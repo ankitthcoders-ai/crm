@@ -11,9 +11,6 @@ const prisma = new PrismaClient();
 
 const ROLES = [
   { name: 'SUPER_ADMIN', displayName: 'Super Admin', description: 'Full system access' },
-  { name: 'HR', displayName: 'HR Manager', description: 'HR and payroll management' },
-  { name: 'MANAGER', displayName: 'Manager', description: 'Team and project management' },
-  { name: 'EMPLOYEE', displayName: 'Employee', description: 'Standard employee access' },
 ];
 
 async function main() {
@@ -58,7 +55,7 @@ async function main() {
   }
 
   const defaultLeaveTypes = [
-    { code: 'ANNUAL', name: 'Annual Leave', daysPerYear: 20 },
+    { code: 'ANNUAL', name: 'Annual Leave', daysPerYear: 18 },
     { code: 'SICK', name: 'Sick Leave', daysPerYear: 6 },
     { code: 'CASUAL', name: 'Casual Leave', daysPerYear: 12 },
   ];
@@ -154,40 +151,16 @@ async function main() {
   }
 
   const superAdminRole = await prisma.role.findUnique({ where: { name: 'SUPER_ADMIN' } });
-  const hrRole = await prisma.role.findUnique({ where: { name: 'HR' } });
-  const managerRole = await prisma.role.findUnique({ where: { name: 'MANAGER' } });
-  const employeeRole = await prisma.role.findUnique({ where: { name: 'EMPLOYEE' } });
 
   const passwordHash = await bcrypt.hash('Password@123', 12);
 
   const demoUsers = [
     {
-      email: 'admin@acme.com',
-      firstName: 'Alex',
-      lastName: 'Admin',
+      email: 'thcoders@admin.com',
+      firstName: 'Tanya',
+      lastName: '',
       roleId: superAdminRole!.id,
-      code: 'EMP-001',
-    },
-    {
-      email: 'hr@acme.com',
-      firstName: 'Hannah',
-      lastName: 'Reed',
-      roleId: hrRole!.id,
-      code: 'EMP-002',
-    },
-    {
-      email: 'manager@acme.com',
-      firstName: 'Marcus',
-      lastName: 'Chen',
-      roleId: managerRole!.id,
-      code: 'EMP-003',
-    },
-    {
-      email: 'employee@acme.com',
-      firstName: 'Emma',
-      lastName: 'Wilson',
-      roleId: employeeRole!.id,
-      code: 'EMP-004',
+      code: 'EMP-0001',
     },
   ];
 
@@ -235,16 +208,10 @@ async function main() {
 
   const deptByEmail: Record<string, string> = {
     'admin@acme.com': deptRecords.ENG,
-    'hr@acme.com': deptRecords.HR,
-    'manager@acme.com': deptRecords.SALES,
-    'employee@acme.com': deptRecords.ENG,
   };
 
   const desigByEmail: Record<string, string> = {
     'admin@acme.com': desigRecords['Team Lead'],
-    'hr@acme.com': desigRecords['HR Specialist'],
-    'manager@acme.com': desigRecords['Sales Manager'],
-    'employee@acme.com': desigRecords['Software Engineer'],
   };
 
   const leaveTypes = await prisma.leaveType.findMany({ where: { companyId: company.id } });

@@ -1,4 +1,5 @@
 import { PERMISSIONS } from '@crm/shared';
+import { prisma } from '../config/database';
 import { leaveRepository } from '../repositories/leave.repository';
 import { employeeRepository } from '../repositories/employee.repository';
 import { auditService } from './audit.service';
@@ -53,7 +54,18 @@ export class LeaveService {
     const eid = await this.resolveEmployeeId(user, employeeId);
     const year = new Date().getFullYear();
     await leaveRepository.ensureBalances(eid, user.companyId, year);
-    return leaveRepository.findBalances(eid, year);
+    
+    const balances = await leaveRepository.findBalances(eid, year);
+    const { items: pendingRequests } = await leaveRepository.findRequests(user.companyId, {
+      page: 1, limit: 1000, employeeId: eid, status: 'PENDING'
+    });
+
+    return balances.map(b => {
+      const pendingDays = pendingRequests
+        .filter(r => r.leaveTypeId === b.leaveTypeId)
+        .reduce((sum, r) => sum + r.days, 0);
+      return { ...b, pendingDays };
+    });
   }
 
   async listRequests(
@@ -86,9 +98,9 @@ export class LeaveService {
 
   async apply(
     user: NonNullable<AuthenticatedRequest['user']>,
-    input: { leaveTypeId: string; startDate: string; endDate: string; reason?: string }
+    input: { leaveTypeId: string; startDate: string; endDate: string; reason?: string; employeeId?: string; autoApprove?: boolean }
   ) {
-    const employeeId = await this.resolveEmployeeId(user);
+    const employeeId = await this.resolveEmployeeId(user, input.employeeId);
     const startDate = parseDate(input.startDate);
     const endDate = parseDate(input.endDate);
 
@@ -157,6 +169,10 @@ export class LeaveService {
       entityId: request.id,
     });
 
+    if (input.autoApprove && user.permissions.includes(PERMISSIONS.LEAVES_APPROVE)) {
+      return this.approve(user, request.id);
+    }
+
     return request;
   }
 
@@ -191,6 +207,28 @@ export class LeaveService {
       approvedBy: user.id,
       approvedAt: new Date(),
     });
+
+    const settings = await prisma.companySettings.findUnique({ where: { companyId: user.companyId } });
+    const workDays = (settings?.workDays as number[]) ?? [1, 2, 3, 4, 5];
+
+    const cur = new Date(request.startDate);
+    while (cur <= request.endDate) {
+      const dow = cur.getUTCDay();
+      if (workDays.includes(dow)) {
+        await prisma.attendance.upsert({
+          where: {
+            employeeId_date: { employeeId: request.employeeId, date: new Date(cur) },
+          },
+          update: { status: 'ON_LEAVE' },
+          create: {
+            employeeId: request.employeeId,
+            date: new Date(cur),
+            status: 'ON_LEAVE',
+          },
+        });
+      }
+      cur.setUTCDate(cur.getUTCDate() + 1);
+    }
 
     await auditService.log({
       companyId: user.companyId,

@@ -42,7 +42,7 @@ export function createApp(): express.Application {
 
   const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 20,
+    max: env.NODE_ENV === 'production' ? 20 : 1000,
     message: { success: false, message: 'Too many auth attempts' },
   });
 
@@ -66,6 +66,7 @@ export function createApp(): express.Application {
   app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
   app.use('/api/v1/auth/login', authLimiter);
   app.use('/api/v1/auth/register', authLimiter);
+  app.use('/api/v1/auth/forgot-password', authLimiter);
   app.use('/api/v1', routes);
   app.use(notFoundHandler);
   app.use(errorHandler);

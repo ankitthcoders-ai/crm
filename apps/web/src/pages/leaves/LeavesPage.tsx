@@ -28,6 +28,7 @@ interface LeaveBalance {
   totalDays: number;
   usedDays: number;
   remainingDays: number;
+  pendingDays?: number;
   leaveType: { name: string; code: string };
 }
 
@@ -56,8 +57,12 @@ export function LeavesPage() {
   const [submitting, setSubmitting] = useState(false);
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
+  const [employees, setEmployees] = useState<{ id: string; user: { firstName: string; lastName: string } }[]>([]);
+  const [holidays, setHolidays] = useState<{ id: string; date: string; name: string; isOptional: boolean }[]>([]);
+  const [selectedDayInfo, setSelectedDayInfo] = useState<{ date: Date; text: string[] } | null>(null);
 
   const [form, setForm] = useState({
+    employeeId: 'self',
     leaveTypeId: '',
     startDate: '',
     endDate: '',
@@ -67,16 +72,24 @@ export function LeavesPage() {
   const load = async () => {
     setLoading(true);
     try {
-      const [typesRes, balRes, reqRes] = await Promise.all([
+      const [typesRes, balRes, reqRes, empRes, holRes] = await Promise.all([
         api.get('/leaves/types'),
         api.get('/leaves/balances'),
         api.get('/leaves/requests', { params: { limit: 30 } }),
+        canApprove ? api.get('/employees') : Promise.resolve({ data: { data: [] } }),
+        api.get('/holidays')
       ]);
-      setTypes(typesRes.data.data ?? []);
+      const allTypes = typesRes.data.data ?? [];
+      const filteredTypes = allTypes.filter((t: any) => !t.name.toLowerCase().includes('annual'));
+      setTypes(filteredTypes);
       setBalances(balRes.data.data ?? []);
       setRequests(reqRes.data.data ?? []);
-      if (!form.leaveTypeId && typesRes.data.data?.[0]) {
-        setForm((f) => ({ ...f, leaveTypeId: typesRes.data.data[0].id }));
+      setHolidays(holRes.data.data ?? []);
+      if (canApprove) {
+        setEmployees(empRes.data.data ?? []);
+      }
+      if (!form.leaveTypeId && filteredTypes[0]) {
+        setForm((f) => ({ ...f, leaveTypeId: filteredTypes[0].id }));
       }
     } catch (e) {
       toast.error(getApiErrorMessage(e));
@@ -93,9 +106,14 @@ export function LeavesPage() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await api.post('/leaves/requests', form);
-      toast.success('Leave request submitted');
-      setForm({ leaveTypeId: types[0]?.id ?? '', startDate: '', endDate: '', reason: '' });
+      const payload = {
+        ...form,
+        employeeId: form.employeeId === 'self' ? '' : form.employeeId,
+        autoApprove: canApprove && form.employeeId && form.employeeId !== 'self' ? true : undefined,
+      };
+      await api.post('/leaves/requests', payload);
+      toast.success(payload.autoApprove ? 'Manual leave recorded and approved' : 'Leave request submitted');
+      setForm({ employeeId: 'self', leaveTypeId: types[0]?.id ?? '', startDate: '', endDate: '', reason: '' });
       load();
     } catch (err) {
       toast.error(getApiErrorMessage(err));
@@ -147,15 +165,47 @@ export function LeavesPage() {
 
   const approvedDates = getLeaveDates('APPROVED');
   const pendingDates = getLeaveDates('PENDING');
+  const holidayDates = holidays.map((h) => new Date(h.date));
 
   const modifiers = {
     approved: approvedDates,
     pending: pendingDates,
+    holiday: holidayDates,
   };
 
   const modifiersStyles = {
     approved: { backgroundColor: '#22c55e', color: 'white' },
     pending: { backgroundColor: '#eab308', color: 'white' },
+    holiday: { backgroundColor: '#a855f7', color: 'white' }, // Purple color for holidays
+  };
+
+  const handleDayClick = (day: Date) => {
+    const texts: string[] = [];
+    
+    // Check for holidays
+    const dayStr = format(day, 'yyyy-MM-dd');
+    const dayHolidays = holidays.filter(h => h.date.startsWith(dayStr));
+    dayHolidays.forEach(h => texts.push(`🎉 Holiday: ${h.name} ${h.isOptional ? '(Optional)' : ''}`));
+
+    // Check for leaves
+    requests.forEach(r => {
+      const start = new Date(r.startDate);
+      const end = new Date(r.endDate);
+      start.setHours(0,0,0,0);
+      end.setHours(0,0,0,0);
+      const clicked = new Date(day);
+      clicked.setHours(0,0,0,0);
+      
+      if (clicked >= start && clicked <= end) {
+        texts.push(`${r.status === 'APPROVED' ? '✅' : '⏳'} ${r.leaveType.name} Request ${r.employee ? `(${r.employee.user.firstName} ${r.employee.user.lastName})` : ''} - ${r.status}`);
+      }
+    });
+
+    if (texts.length > 0) {
+      setSelectedDayInfo({ date: day, text: texts });
+    } else {
+      setSelectedDayInfo(null);
+    }
   };
 
   return (
@@ -165,24 +215,41 @@ export function LeavesPage() {
           <CalendarDays className="h-7 w-7 text-primary" />
           Leave Management
         </h1>
-        <p className="text-muted-foreground">Apply for leave and track your balances</p>
+        <div className="flex flex-col gap-1 mt-1">
+          <p className="text-muted-foreground">Apply for leave and track your balances</p>
+          <p className="text-xs font-medium text-amber-600 dark:text-amber-500">
+            * Note: Leave balances expire at the end of the year and do not carry forward.
+          </p>
+        </div>
       </div>
 
       {loading ? (
-        <div className="grid gap-4 md:grid-cols-3">
-          {[1, 2, 3].map((i) => (
+        <div className="grid gap-4 md:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
             <Skeleton key={i} className="h-24" />
           ))}
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-4">
+          <Card className="bg-primary/5 border-primary/20">
+            <CardContent className="pt-6">
+              <p className="text-sm font-medium text-primary">Total Pending Leaves</p>
+              <p className="text-2xl font-bold mt-1 text-primary">
+                {balances.reduce((sum, b) => sum + b.totalDays, 0) - balances.reduce((sum, b) => sum + b.usedDays, 0)}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                of {balances.reduce((sum, b) => sum + b.totalDays, 0)} total days · used {balances.reduce((sum, b) => sum + b.usedDays, 0)}
+              </p>
+            </CardContent>
+          </Card>
           {balances.map((b) => (
             <Card key={b.id}>
               <CardContent className="pt-6">
-                <p className="text-sm text-muted-foreground">{b.leaveType.name}</p>
+                <p className="text-sm font-medium text-muted-foreground">{b.leaveType.name}</p>
                 <p className="text-2xl font-bold mt-1">{b.remainingDays}</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground mt-1">
                   of {b.totalDays} days · used {b.usedDays}
+                  {b.pendingDays ? ` · awaiting approval ${b.pendingDays}` : ''}
                 </p>
               </CardContent>
             </Card>
@@ -196,6 +263,27 @@ export function LeavesPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleApply} className="grid gap-4 sm:grid-cols-2 max-w-2xl">
+            {canApprove && (
+              <div className="space-y-2 sm:col-span-2">
+                <Label>Employee (Optional - for Manual Entry)</Label>
+                <Select
+                  value={form.employeeId}
+                  onValueChange={(v) => setForm({ ...form, employeeId: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select employee (leave empty for yourself)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="self">-- Self --</SelectItem>
+                    {employees.map((e) => (
+                      <SelectItem key={e.id} value={e.id}>
+                        {e.user.firstName} {e.user.lastName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="space-y-2 sm:col-span-2">
               <Label>Leave type</Label>
               <Select
@@ -278,16 +366,29 @@ export function LeavesPage() {
           <CardHeader>
             <CardTitle className="text-base">Leave Calendar</CardTitle>
           </CardHeader>
-          <CardContent className="flex justify-center p-4">
+          <CardContent className="flex flex-col items-center p-4 overflow-x-auto">
             <style>{`
-              .rdp { --rdp-cell-size: 40px; margin: 0; }
+              .rdp { --rdp-cell-size: 32px; margin: 0; }
               .rdp-day_selected { font-weight: bold; }
+              .rdp-months { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; justify-content: center; }
             `}</style>
             <DayPicker 
               mode="multiple" 
               modifiers={modifiers} 
               modifiersStyles={modifiersStyles}
+              numberOfMonths={1}
+              onDayClick={handleDayClick}
             />
+            {selectedDayInfo && (
+              <div className="mt-4 p-3 bg-muted/50 rounded-md border text-sm w-full max-w-sm">
+                <p className="font-semibold mb-2">{format(selectedDayInfo.date, 'PPPP')}</p>
+                <ul className="space-y-1">
+                  {selectedDayInfo.text.map((t, idx) => (
+                    <li key={idx} className="text-muted-foreground">{t}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </CardContent>
         </Card>
 

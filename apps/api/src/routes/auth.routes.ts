@@ -9,6 +9,7 @@ import {
   forgotPasswordSchema,
   resetPasswordSchema,
   verifyEmailSchema,
+  changePasswordSchema,
 } from '../validators/auth.validator';
 
 const router = Router();
@@ -50,6 +51,10 @@ router.post('/verify-email', validate(verifyEmailSchema), (req, res, next) =>
 
 router.get('/me', authenticate, (req, res, next) =>
   authController.me(req, res).catch(next)
+);
+
+router.post('/change-password', authenticate, validate(changePasswordSchema), (req, res, next) =>
+  authController.changePassword(req, res).catch(next)
 );
 
 export default router;

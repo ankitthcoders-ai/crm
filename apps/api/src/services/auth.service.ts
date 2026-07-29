@@ -86,6 +86,24 @@ export class AuthService {
         },
       });
 
+      await tx.department.createMany({
+        data: [
+          { companyId: company.id, name: 'Engineering', code: 'ENG' },
+          { companyId: company.id, name: 'Human Resources', code: 'HR' },
+          { companyId: company.id, name: 'Sales', code: 'SALES' },
+          { companyId: company.id, name: 'Marketing', code: 'MKT' },
+        ],
+      });
+
+      await tx.designation.createMany({
+        data: [
+          { companyId: company.id, title: 'Manager', level: 3 },
+          { companyId: company.id, title: 'Software Engineer', level: 2 },
+          { companyId: company.id, title: 'HR Specialist', level: 2 },
+          { companyId: company.id, title: 'Sales Executive', level: 2 },
+        ],
+      });
+
       const user = await tx.user.create({
         data: {
           email,
@@ -106,13 +124,13 @@ export class AuthService {
         data: {
           userId: user.id,
           companyId: company.id,
-          employeeCode: 'EMP-001',
+          employeeCode: 'EMP-0001',
           joiningDate: new Date(),
         },
       });
 
       return user;
-    });
+    }, { timeout: 15000 });
 
     const verifyToken = uuidv4();
     await authRepository.createEmailVerification(
@@ -206,6 +224,31 @@ export class AuthService {
     await userRepository.update(reset.userId, { passwordHash });
     await authRepository.markPasswordResetUsed(reset.id);
     await authRepository.revokeAllUserTokens(reset.userId);
+  }
+
+  async changePassword(userId: string, currentPassword: string, newPassword: string) {
+    const user = await prisma.user.findUnique({ where: { id: userId, deletedAt: null } });
+    if (!user) throw new NotFoundError('User not found');
+
+    const isValid = await comparePassword(currentPassword, user.passwordHash);
+    if (!isValid) throw new UnauthorizedError('Incorrect current password');
+
+    const passwordHash = await hashPassword(newPassword);
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash },
+    });
+
+    await auditService.log({
+      companyId: user.companyId,
+      userId: user.id,
+      action: 'UPDATE',
+      entityType: 'User',
+      entityId: user.id,
+      oldValues: { password: '***' },
+      newValues: { password: '*** (changed by user)' },
+    });
   }
 
   async verifyEmail(token: string) {

@@ -24,6 +24,11 @@ router.get(
 );
 
 router.get(
+  '/birthdays',
+  (req, res, next) => employeeController.listBirthdays(req, res).catch(next)
+);
+
+router.get(
   '/departments',
   requireAnyPermission(PERMISSIONS.EMPLOYEES_READ),
   (req, res, next) => employeeController.listDepartments(req, res).catch(next)

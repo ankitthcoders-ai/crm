@@ -3,6 +3,8 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { useAppSelector } from '@/store/hooks';
 import { ROLE_LABELS } from '@crm/shared';
+import { api, getApiErrorMessage } from '@/lib/api';
+import { toast } from 'sonner';
 
 export function ProfilePage() {
   const user = useAppSelector((s) => s.auth.user);
@@ -50,6 +52,73 @@ export function ProfilePage() {
               )}
             </div>
           </div>
+        </CardContent>
+      </Card>
+      
+      <Card>
+        <CardHeader>
+          <CardTitle>Change Password</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const fd = new FormData(e.currentTarget);
+              const currentPassword = fd.get('currentPassword') as string;
+              const newPassword = fd.get('newPassword') as string;
+              const confirmPassword = fd.get('confirmPassword') as string;
+
+              if (newPassword !== confirmPassword) {
+                toast.error('New passwords do not match');
+                return;
+              }
+
+              try {
+                await api.post('/auth/change-password', { currentPassword, newPassword });
+                toast.success('Password changed successfully');
+                (e.target as HTMLFormElement).reset();
+              } catch (err) {
+                toast.error(getApiErrorMessage(err));
+              }
+            }}
+            className="space-y-4 max-w-sm"
+          >
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Current Password</label>
+              <input 
+                name="currentPassword" 
+                type="password" 
+                required 
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">New Password</label>
+              <input 
+                name="newPassword" 
+                type="password" 
+                required
+                minLength={8}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Confirm New Password</label>
+              <input 
+                name="confirmPassword" 
+                type="password" 
+                required
+                minLength={8}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              />
+            </div>
+            <button 
+              type="submit"
+              className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+            >
+              Update Password
+            </button>
+          </form>
         </CardContent>
       </Card>
     </div>

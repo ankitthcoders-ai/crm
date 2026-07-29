@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CheckSquare, Plus } from 'lucide-react';
+import { CheckSquare, Plus, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,6 +44,7 @@ export function TasksPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [updatingTaskId, setUpdatingTaskId] = useState<string | null>(null);
   const [form, setForm] = useState({
     title: '',
     projectId: '',
@@ -98,12 +99,15 @@ export function TasksPage() {
   };
 
   const updateStatus = async (id: string, status: string) => {
+    setUpdatingTaskId(id);
     try {
       await api.patch(`/tasks/${id}`, { status });
       toast.success('Task updated');
       load();
     } catch (e) {
       toast.error(getApiErrorMessage(e));
+    } finally {
+      setUpdatingTaskId(null);
     }
   };
 
@@ -220,15 +224,21 @@ export function TasksPage() {
                       <td className="p-3"><Badge variant="outline">{t.priority}</Badge></td>
                       <td className="p-3">
                         {canWrite ? (
-                          <select
-                            className="rounded-md border border-input bg-background px-2 py-1 text-xs"
-                            value={t.status}
-                            onChange={(e) => updateStatus(t.id, e.target.value)}
-                          >
-                            {STATUSES.map((s) => (
-                              <option key={s} value={s}>{s.replace('_', ' ')}</option>
-                            ))}
-                          </select>
+                          <div className="flex items-center gap-2">
+                            <select
+                              className="rounded-md border border-input bg-background px-2 py-1 text-xs disabled:opacity-50"
+                              value={t.status}
+                              onChange={(e) => updateStatus(t.id, e.target.value)}
+                              disabled={updatingTaskId === t.id}
+                            >
+                              {STATUSES.map((s) => (
+                                <option key={s} value={s}>{s.replace('_', ' ')}</option>
+                              ))}
+                            </select>
+                            {updatingTaskId === t.id && (
+                              <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                            )}
+                          </div>
                         ) : (
                           <Badge variant="outline">{t.status}</Badge>
                         )}
