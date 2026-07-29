@@ -9,7 +9,7 @@ dotenv.config({ path: path.join(apiRoot, '../../.env') });
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  API_PORT: z.coerce.number().default(4000),
+  API_PORT: z.coerce.number().default(process.env.PORT ? parseInt(process.env.PORT, 10) : 4000),
   API_URL: z.string().default('http://localhost:4000'),
   CORS_ORIGIN: z.string().default('http://localhost:5173'),
   DATABASE_URL: z.string(),
