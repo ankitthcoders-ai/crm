@@ -154,7 +154,7 @@ export function DashboardPage() {
       )}
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
+        <Card className="lg:col-span-2 border-border/40 bg-background/60 backdrop-blur-md shadow-sm hover:shadow-md transition-shadow">
           <CardHeader>
             <CardTitle className="text-base">Employee Growth</CardTitle>
           </CardHeader>
@@ -175,7 +175,7 @@ export function DashboardPage() {
       </div>
 
       {isEmployee && (
-        <Card>
+        <Card className="border-border/40 bg-background/60 backdrop-blur-md shadow-sm hover:shadow-md transition-shadow">
           <CardHeader>
             <CardTitle className="text-base">My Assigned Tasks</CardTitle>
           </CardHeader>
@@ -211,7 +211,7 @@ export function DashboardPage() {
       )}
 
       {isSuperAdmin && (
-        <Card>
+        <Card className="border-border/40 bg-background/60 backdrop-blur-md shadow-sm hover:shadow-md transition-shadow">
           <CardHeader>
             <CardTitle className="text-base">Attendance Trend</CardTitle>
           </CardHeader>

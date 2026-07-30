@@ -16,7 +16,7 @@ interface ActivityFeedProps {
 
 export function ActivityFeed({ activities }: ActivityFeedProps) {
   return (
-    <Card>
+    <Card className="border-border/40 bg-background/60 backdrop-blur-md shadow-sm hover:shadow-md transition-shadow">
       <CardHeader>
         <CardTitle className="text-base">Recent Activity</CardTitle>
       </CardHeader>

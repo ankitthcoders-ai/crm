@@ -27,7 +27,13 @@ export function DashboardLayout() {
   }, [dispatch, user?.id]);
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen bg-background relative selection:bg-primary/20 selection:text-primary">
+      {/* Subtle Premium Background Glows */}
+      <div className="fixed inset-0 pointer-events-none z-[-1] overflow-hidden bg-background">
+        <div className="absolute -top-[20%] -left-[10%] w-[40%] h-[40%] rounded-full bg-primary/5 blur-[100px]" />
+        <div className="absolute top-[40%] -right-[10%] w-[30%] h-[30%] rounded-full bg-primary/5 blur-[100px]" />
+      </div>
+
       <Sidebar />
 
       {mobileOpen && (

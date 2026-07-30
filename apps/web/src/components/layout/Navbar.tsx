@@ -50,42 +50,42 @@ export function Navbar({ onMenuClick }: NavbarProps) {
   }, [dispatch]);
 
   return (
-    <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-background/95 backdrop-blur px-4 lg:px-6">
-      <Button variant="ghost" size="icon" className="lg:hidden" onClick={onMenuClick}>
+    <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b border-border/40 bg-background/60 backdrop-blur-xl px-4 lg:px-6 transition-all duration-300">
+      <Button variant="ghost" size="icon" className="lg:hidden hover:bg-muted/50" onClick={onMenuClick}>
         <Menu className="h-5 w-5" />
       </Button>
 
-      <div className="relative flex-1 max-w-md hidden sm:block">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input placeholder="Search employees, tasks, projects..." className="pl-9" />
+      <div className="relative flex-1 max-w-md hidden sm:block group">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
+        <Input placeholder="Search employees, tasks, projects..." className="pl-9 bg-muted/40 border-border/50 hover:bg-muted/60 focus-visible:bg-background transition-colors" />
       </div>
 
-      <div className="ml-auto flex items-center gap-2">
+      <div className="ml-auto flex items-center gap-1 sm:gap-2">
         <NotificationPanel />
 
-        <Button variant="ghost" size="icon" onClick={toggleTheme}>
+        <Button variant="ghost" size="icon" onClick={toggleTheme} className="hover:bg-muted/50 transition-colors">
           {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
         </Button>
 
-        <Button variant="ghost" size="icon" onClick={() => navigate('/profile')}>
+        <Button variant="ghost" size="icon" onClick={() => navigate('/profile')} className="hover:bg-muted/50 transition-colors">
           <User className="h-5 w-5" />
         </Button>
 
-        <div className="hidden md:flex items-center gap-2 pl-2 border-l">
-          <Avatar className="h-8 w-8">
+        <div className="hidden md:flex items-center gap-3 pl-3 ml-1 border-l border-border/40">
+          <Avatar className="h-8 w-8 ring-2 ring-primary/10 transition-all hover:ring-primary/30">
             <AvatarFallback className="text-xs bg-primary/10 text-primary">{initials}</AvatarFallback>
           </Avatar>
           <div className="text-sm">
-            <p className="font-medium leading-none">
+            <p className="font-medium leading-none mb-1.5">
               {user?.firstName} {user?.lastName}
             </p>
-            <Badge variant="outline" className="mt-1 text-[10px] px-1 py-0">
+            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 rounded-sm bg-primary/10 text-primary border-none">
               {user?.role}
             </Badge>
           </div>
         </div>
 
-        <Button variant="ghost" size="icon" onClick={handleLogout}>
+        <Button variant="ghost" size="icon" onClick={handleLogout} className="hover:bg-destructive/10 hover:text-destructive transition-colors ml-1">
           <LogOut className="h-5 w-5" />
         </Button>
       </div>

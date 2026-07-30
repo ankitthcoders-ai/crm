@@ -33,53 +33,65 @@ export function LoginPage() {
 
 
 
+
   return (
-    <div className="min-h-screen flex">
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary/90 via-primary to-violet-900 p-12 flex-col justify-between text-white">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20">
-            <Zap className="h-6 w-6" />
+    <div className="min-h-screen flex bg-background selection:bg-primary/20 selection:text-primary">
+      <div className="relative hidden lg:flex lg:w-1/2 overflow-hidden flex-col justify-between text-white p-12">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/80 to-purple-900 z-0" />
+        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay z-0" />
+        <div className="absolute top-[-20%] left-[-10%] w-[70%] h-[70%] rounded-full bg-white/10 blur-[100px] z-0" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-violet-500/20 blur-[80px] z-0" />
+
+        <div className="relative z-10 flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/10 backdrop-blur-md shadow-inner border border-white/20">
+            <Zap className="h-6 w-6 text-white" />
           </div>
-          <span className="text-xl font-bold">Nexus CRM</span>
+          <span className="text-2xl font-bold tracking-tight">Nexus CRM</span>
         </div>
-        <div>
-          <h1 className="text-4xl font-bold leading-tight">
-            Enterprise CRM + HRMS + Projects
+
+        <div className="relative z-10">
+          <h1 className="text-5xl font-bold leading-tight tracking-tight mb-6">
+            Enterprise CRM <br /> HRMS + Projects
           </h1>
-          <p className="mt-4 text-lg text-white/80 max-w-md">
+          <p className="text-lg text-white/80 max-w-md font-medium leading-relaxed">
             Unified platform for workforce management, payroll, and project delivery —
-            inspired by Linear, Notion, and Jira.
+            inspired by modern design principles.
           </p>
         </div>
-        <p className="text-sm text-white/60">© 2026 Nexus CRM. All rights reserved.</p>
+        <p className="relative z-10 text-sm text-white/60 font-medium">© 2026 Nexus CRM. All rights reserved.</p>
       </div>
 
-      <div className="flex flex-1 items-center justify-center p-6">
-        <Card className="w-full max-w-md border-0 shadow-xl">
-          <CardHeader className="text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary lg:hidden">
-              <Zap className="h-6 w-6 text-primary-foreground" />
+      <div className="flex flex-1 items-center justify-center p-6 relative overflow-hidden">
+        <div className="absolute inset-0 bg-background z-0" />
+        <div className="absolute top-[20%] right-[10%] w-[40%] h-[40%] rounded-full bg-primary/5 blur-[120px] z-0 pointer-events-none" />
+        <div className="absolute bottom-[10%] left-[10%] w-[50%] h-[50%] rounded-full bg-primary/5 blur-[100px] z-0 pointer-events-none" />
+
+        <Card className="w-full max-w-md border-border/40 shadow-2xl bg-background/60 backdrop-blur-xl relative z-10">
+          <CardHeader className="text-center pb-8 pt-6">
+            <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 lg:hidden ring-1 ring-primary/20">
+              <Zap className="h-7 w-7 text-primary" />
             </div>
-            <CardTitle className="text-2xl">Sign in</CardTitle>
-            <CardDescription>Enter your credentials to access your workspace</CardDescription>
+            <CardTitle className="text-3xl tracking-tight font-bold">Welcome back</CardTitle>
+            <CardDescription className="text-base mt-2">Enter your credentials to access your workspace</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="space-y-2.5">
+                <Label htmlFor="email" className="text-sm font-medium">Email</Label>
                 <Input
                   id="email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@company.com"
+                  className="h-11 bg-muted/40 border-border/50 focus-visible:bg-background transition-colors"
                   required
                 />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Password</Label>
-                  <Link to="/forgot-password" className="text-xs text-primary hover:underline">
+                  <Label htmlFor="password" className="text-sm font-medium">Password</Label>
+                  <Link to="/forgot-password" className="text-xs text-primary hover:text-primary/80 font-medium transition-colors">
                     Forgot password?
                   </Link>
                 </div>
@@ -89,12 +101,13 @@ export function LoginPage() {
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    className="h-11 bg-muted/40 border-border/50 focus-visible:bg-background transition-colors"
                     required
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none transition-colors"
                   >
                     {showPassword ? (
                       <EyeOff className="h-4 w-4" />
@@ -104,18 +117,16 @@ export function LoginPage() {
                   </button>
                 </div>
               </div>
-              {error && <p className="text-sm text-destructive">{error}</p>}
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+              {error && <p className="text-sm text-destructive font-medium">{error}</p>}
+              <Button type="submit" className="w-full h-11 text-base font-medium shadow-md transition-all hover:shadow-lg active:scale-[0.98]" disabled={loading}>
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Sign in
               </Button>
             </form>
 
-
-
-            <p className="mt-6 text-center text-sm text-muted-foreground">
+            <p className="mt-8 text-center text-sm text-muted-foreground">
               New company?{' '}
-              <Link to="/register" className="text-primary hover:underline">
+              <Link to="/register" className="text-primary font-medium hover:text-primary/80 transition-colors">
                 Create account
               </Link>
             </p>
