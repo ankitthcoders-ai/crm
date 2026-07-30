@@ -42,7 +42,22 @@ export class LeaveService {
       if (!emp) throw new NotFoundError('Employee not found');
       return employeeId;
     }
-    if (!user.employeeId) throw new ValidationError('No employee profile linked');
+    if (!user.employeeId) {
+      const existingEmp = await prisma.employee.findUnique({ where: { userId: user.id } });
+      if (existingEmp) return existingEmp.id;
+
+      const count = await prisma.employee.count({ where: { companyId: user.companyId } });
+      const code = `EMP-${String(count + 1).padStart(4, '0')}`;
+      const newEmp = await prisma.employee.create({
+        data: {
+          userId: user.id,
+          companyId: user.companyId,
+          employeeCode: code,
+          joiningDate: new Date(),
+        },
+      });
+      return newEmp.id;
+    }
     return user.employeeId;
   }
 

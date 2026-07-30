@@ -72,21 +72,30 @@ export function LeavesPage() {
   const load = async () => {
     setLoading(true);
     try {
-      const [typesRes, balRes, reqRes, empRes, holRes] = await Promise.all([
+      const [typesRes, balRes, reqRes, empRes, holRes] = await Promise.allSettled([
         api.get('/leaves/types'),
         api.get('/leaves/balances'),
         api.get('/leaves/requests', { params: { limit: 30 } }),
         canApprove ? api.get('/employees') : Promise.resolve({ data: { data: [] } }),
-        api.get('/holidays')
+        api.get('/holidays'),
       ]);
-      const allTypes = typesRes.data.data ?? [];
+
+      const allTypes = typesRes.status === 'fulfilled' ? (typesRes.value.data.data ?? []) : [];
       setTypes(allTypes);
-      setBalances(balRes.data.data ?? []);
-      setRequests(reqRes.data.data ?? []);
-      setHolidays(holRes.data.data ?? []);
-      if (canApprove) {
-        setEmployees(empRes.data.data ?? []);
+
+      if (balRes.status === 'fulfilled') {
+        setBalances(balRes.value.data.data ?? []);
       }
+      if (reqRes.status === 'fulfilled') {
+        setRequests(reqRes.value.data.data ?? []);
+      }
+      if (holRes.status === 'fulfilled') {
+        setHolidays(holRes.value.data.data ?? []);
+      }
+      if (canApprove && empRes.status === 'fulfilled') {
+        setEmployees(empRes.value.data.data ?? []);
+      }
+
       if (!form.leaveTypeId && allTypes[0]) {
         setForm((f) => ({ ...f, leaveTypeId: allTypes[0].id }));
       }
