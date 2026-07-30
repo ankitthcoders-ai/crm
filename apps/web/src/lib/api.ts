@@ -12,7 +12,11 @@ export const api = axios.create({
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('accessToken');
   if (token && config.headers) {
-    config.headers.Authorization = `Bearer ${token}`;
+    if (typeof config.headers.set === 'function') {
+      config.headers.set('Authorization', `Bearer ${token}`);
+    } else {
+      (config.headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+    }
   }
   return config;
 });
@@ -35,7 +39,6 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       const storedRefreshToken = localStorage.getItem('refreshToken');
 
-      // If no refresh token exists, do not attempt to refresh
       if (!storedRefreshToken) {
         localStorage.removeItem('accessToken');
         return Promise.reject(error);
@@ -69,7 +72,11 @@ api.interceptors.response.use(
         failedQueue = [];
 
         if (originalRequest.headers && newAccessToken) {
-          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+          if (typeof originalRequest.headers.set === 'function') {
+            originalRequest.headers.set('Authorization', `Bearer ${newAccessToken}`);
+          } else {
+            (originalRequest.headers as Record<string, string>)['Authorization'] = `Bearer ${newAccessToken}`;
+          }
         }
         return api(originalRequest);
       } catch (refreshError) {
