@@ -19,6 +19,15 @@ export function errorHandler(
     return;
   }
 
+  if (err.name === 'PrismaClientKnownRequestError' && (err as any).code === 'P2002') {
+    res.status(409).json({
+      success: false,
+      message: 'A record with that unique value already exists',
+      statusCode: 409,
+    });
+    return;
+  }
+
   logger.error('Unhandled error', { error: err.message, stack: err.stack });
   res.status(500).json({
     success: false,
