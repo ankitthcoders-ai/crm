@@ -2,35 +2,38 @@ FROM node:20-alpine AS builder
 RUN apk add --no-cache openssl
 WORKDIR /app
 
-# Copy only what we need
+# Copy workspace root files
+COPY package.json package-lock.json ./
+
+# Stub out apps/web so npm workspace resolution doesn't fail
+RUN mkdir -p apps/web && echo '{"name":"@crm/web","version":"0.0.0","private":true}' > apps/web/package.json
+
 COPY packages/shared ./packages/shared
 COPY apps/api ./apps/api
 
-# Install shared dependencies and build
-WORKDIR /app/packages/shared
-RUN npm install
-RUN npm run build
+# Install everything (now safe because all workspace dirs exist)
+RUN npm ci
 
-# Install API dependencies and build
+# Build shared
+RUN npm run build -w @crm/shared
+
+# Build API
 WORKDIR /app/apps/api
-RUN npm install
 RUN npx prisma generate
 RUN npm run build
 
-# Runtime
-FROM node:20-alpine AS runner
+# ---------- runtime ----------
+FROM node:20-alpine
 RUN apk add --no-cache openssl
 WORKDIR /app
 ENV NODE_ENV=production
 
-# Copy only production deps + built artifacts
-COPY --from=builder /app/packages/shared/package.json ./packages/shared/
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
-COPY --from=builder /app/apps/api/package.json ./apps/api/
+COPY --from=builder /app/packages/shared/package.json ./packages/shared/package.json
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
+COPY --from=builder /app/apps/api/package.json ./apps/api/
 COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
-COPY --from=builder /app/apps/api/node_modules ./apps/api/node_modules
-COPY --from=builder /app/packages/shared/node_modules ./packages/shared/node_modules
 
 WORKDIR /app/apps/api
 RUN mkdir -p uploads
