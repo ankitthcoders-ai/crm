@@ -80,16 +80,15 @@ export function LeavesPage() {
         api.get('/holidays')
       ]);
       const allTypes = typesRes.data.data ?? [];
-      const filteredTypes = allTypes.filter((t: any) => !t.name.toLowerCase().includes('annual'));
-      setTypes(filteredTypes);
+      setTypes(allTypes);
       setBalances(balRes.data.data ?? []);
       setRequests(reqRes.data.data ?? []);
       setHolidays(holRes.data.data ?? []);
       if (canApprove) {
         setEmployees(empRes.data.data ?? []);
       }
-      if (!form.leaveTypeId && filteredTypes[0]) {
-        setForm((f) => ({ ...f, leaveTypeId: filteredTypes[0].id }));
+      if (!form.leaveTypeId && allTypes[0]) {
+        setForm((f) => ({ ...f, leaveTypeId: allTypes[0].id }));
       }
     } catch (e) {
       toast.error(getApiErrorMessage(e));
@@ -295,11 +294,17 @@ export function LeavesPage() {
                   <SelectValue placeholder="Select a leave type" />
                 </SelectTrigger>
                 <SelectContent>
-                  {types.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>
-                      {t.name} ({t.daysPerYear} days/year)
+                  {types.length === 0 ? (
+                    <SelectItem value="none" disabled>
+                      No leave types available
                     </SelectItem>
-                  ))}
+                  ) : (
+                    types.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>
+                        {t.name} ({t.daysPerYear} days/year)
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
