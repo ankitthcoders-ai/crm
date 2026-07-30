@@ -23,7 +23,10 @@ export const login = createAsyncThunk(
   async (credentials: LoginRequest, { rejectWithValue }) => {
     try {
       const { data } = await api.post('/auth/login', credentials);
-      return data.data as { user: AuthUser };
+      const resData = data.data as { user: AuthUser; accessToken?: string; refreshToken?: string };
+      if (resData.accessToken) localStorage.setItem('accessToken', resData.accessToken);
+      if (resData.refreshToken) localStorage.setItem('refreshToken', resData.refreshToken);
+      return resData;
     } catch (err) {
       return rejectWithValue(getApiErrorMessage(err));
     }
@@ -41,6 +44,8 @@ export const fetchMe = createAsyncThunk('auth/me', async (_, { rejectWithValue }
 
 export const logout = createAsyncThunk('auth/logout', async () => {
   await api.post('/auth/logout').catch(() => null);
+  localStorage.removeItem('accessToken');
+  localStorage.removeItem('refreshToken');
 });
 
 const authSlice = createSlice({

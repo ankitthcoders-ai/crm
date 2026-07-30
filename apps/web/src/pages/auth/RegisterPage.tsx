@@ -23,7 +23,9 @@ export function RegisterPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      await api.post('/auth/register', form);
+      const { data } = await api.post('/auth/register', form);
+      if (data.data?.accessToken) localStorage.setItem('accessToken', data.data.accessToken);
+      if (data.data?.refreshToken) localStorage.setItem('refreshToken', data.data.refreshToken);
       toast.success('Company registered successfully!');
       navigate('/dashboard');
       window.location.reload();

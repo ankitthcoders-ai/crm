@@ -18,7 +18,7 @@ export class AuthController {
     const { accessToken, refreshToken, user } = result;
     res.cookie('accessToken', accessToken, getCookieOptions());
     res.cookie('refreshToken', refreshToken, getCookieOptions());
-    return sendCreated(res, { user }, 'Registration successful');
+    return sendCreated(res, { user, accessToken, refreshToken }, 'Registration successful');
   }
 
   async login(req: AuthenticatedRequest, res: Response) {
@@ -33,11 +33,11 @@ export class AuthController {
     const { accessToken, refreshToken, user } = result;
     res.cookie('accessToken', accessToken, getCookieOptions());
     res.cookie('refreshToken', refreshToken, getCookieOptions());
-    return sendSuccess(res, { user }, 'Login successful');
+    return sendSuccess(res, { user, accessToken, refreshToken }, 'Login successful');
   }
 
   async refresh(req: AuthenticatedRequest, res: Response) {
-    const token = req.cookies.refreshToken;
+    const token = req.cookies.refreshToken || req.body.refreshToken;
     if (!token) {
       return res.status(401).json({ success: false, message: 'No refresh token provided' });
     }
@@ -45,7 +45,7 @@ export class AuthController {
     const { accessToken, refreshToken, user } = result;
     res.cookie('accessToken', accessToken, getCookieOptions());
     res.cookie('refreshToken', refreshToken, getCookieOptions());
-    return sendSuccess(res, { user }, 'Token refreshed');
+    return sendSuccess(res, { user, accessToken, refreshToken }, 'Token refreshed');
   }
 
   async logout(req: AuthenticatedRequest, res: Response) {
