@@ -104,6 +104,15 @@ export class AuthService {
         ],
       });
 
+      await tx.leaveType.createMany({
+        data: [
+          { companyId: company.id, name: 'Casual Leave', code: 'CASUAL', daysPerYear: 12, isPaid: true },
+          { companyId: company.id, name: 'Sick Leave', code: 'SICK', daysPerYear: 10, isPaid: true },
+          { companyId: company.id, name: 'Earned Leave', code: 'EARNED', daysPerYear: 15, isPaid: true },
+          { companyId: company.id, name: 'Unpaid Leave', code: 'UNPAID', daysPerYear: 30, isPaid: false },
+        ],
+      });
+
       const user = await tx.user.create({
         data: {
           email,

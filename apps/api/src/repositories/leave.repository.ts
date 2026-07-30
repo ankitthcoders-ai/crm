@@ -3,10 +3,27 @@ import { prisma } from '../config/database';
 
 export class LeaveRepository {
   async findTypes(companyId: string) {
-    return prisma.leaveType.findMany({
+    let types = await prisma.leaveType.findMany({
       where: { companyId },
       orderBy: { name: 'asc' },
     });
+
+    if (types.length === 0) {
+      await prisma.leaveType.createMany({
+        data: [
+          { companyId, name: 'Casual Leave', code: 'CASUAL', daysPerYear: 12, isPaid: true },
+          { companyId, name: 'Sick Leave', code: 'SICK', daysPerYear: 10, isPaid: true },
+          { companyId, name: 'Earned Leave', code: 'EARNED', daysPerYear: 15, isPaid: true },
+          { companyId, name: 'Unpaid Leave', code: 'UNPAID', daysPerYear: 30, isPaid: false },
+        ],
+      });
+      types = await prisma.leaveType.findMany({
+        where: { companyId },
+        orderBy: { name: 'asc' },
+      });
+    }
+
+    return types;
   }
 
   async findBalances(employeeId: string, year: number) {
