@@ -22,6 +22,13 @@ export class UserRepository {
     });
   }
 
+  async existsByEmail(email: string) {
+    const count = await prisma.user.count({
+      where: { email: email.toLowerCase() },
+    });
+    return count > 0;
+  }
+
   async findById(id: string) {
     return prisma.user.findFirst({
       where: { id, deletedAt: null },

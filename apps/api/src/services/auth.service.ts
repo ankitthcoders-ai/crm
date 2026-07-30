@@ -52,7 +52,7 @@ export class AuthService {
     companyName: string;
   }) {
     const email = input.email.toLowerCase();
-    const existing = await userRepository.findByEmail(email);
+    const existing = await userRepository.existsByEmail(email);
     if (existing) throw new ConflictError('Email already registered');
 
     let slug = slugify(input.companyName);
