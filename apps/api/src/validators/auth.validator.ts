@@ -19,7 +19,7 @@ export const registerSchema = z.object({
 });
 
 export const refreshSchema = z.object({
-  refreshToken: z.string().optional(),
+  refreshToken: z.string().nullable().optional(),
 });
 
 export const forgotPasswordSchema = z.object({
