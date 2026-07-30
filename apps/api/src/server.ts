@@ -15,7 +15,7 @@ async function bootstrap(): Promise<void> {
   startCronJobs();
 
   const PORT = Number(process.env.PORT) || env.API_PORT;
-  httpServer.listen(PORT, () => {
+  httpServer.listen(PORT, '0.0.0.0', () => {
     logger.info(`API running on port ${PORT}`);
     logger.info(`Swagger docs: ${env.API_URL}/api/docs`);
   });
