@@ -33,6 +33,14 @@ api.interceptors.response.use(
     }
 
     if (error.response?.status === 401 && !originalRequest._retry) {
+      const storedRefreshToken = localStorage.getItem('refreshToken');
+
+      // If no refresh token exists, do not attempt to refresh
+      if (!storedRefreshToken) {
+        localStorage.removeItem('accessToken');
+        return Promise.reject(error);
+      }
+
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({
@@ -46,7 +54,6 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const storedRefreshToken = localStorage.getItem('refreshToken');
         const { data } = await axios.post(
           `${API_URL}/auth/refresh`,
           { refreshToken: storedRefreshToken },
